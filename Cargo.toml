@@ -1,0 +1,21 @@
+[package]
+name = "sv2-uniffi"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+codec_sv2 = { git = "https://github.com/stratum-mining/stratum", branch = "main", default-features = true, features = ["noise_sv2"] }
+roles_logic_sv2 = { git = "https://github.com/stratum-mining/stratum", branch = "main" }
+
+uniffi = { version = "0.29.3", features = ["cli"] }
+
+[build-dependencies]
+uniffi = { version = "0.29.3", features = ["build"] }
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+name = "sv2"

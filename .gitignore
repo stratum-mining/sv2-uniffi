@@ -1,0 +1,8 @@
+target
+python/sv2.py
+__pycache__
+*.so
+*.dylib
+*.egg-info
+dist
+python/build

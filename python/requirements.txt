@@ -1,0 +1,5 @@
+semantic-version==2.9.0
+typing_extensions==4.0.1
+setuptools==75.3.2
+wheel==0.38.4
+base58==2.1.1
