@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub enum Sv2MessageError {
     FailedToConvertProtocol,
     FailedToSerializeString,
+    FailedToSerializeByteArray,
 }
 
 impl Display for Sv2MessageError {
