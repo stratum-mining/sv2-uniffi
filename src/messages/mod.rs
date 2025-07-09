@@ -4,7 +4,7 @@ pub mod job_declaration;
 pub mod mining;
 pub mod template_distribution;
 
-use crate::messages::{common::*, error::Sv2MessageError, mining::*};
+use crate::messages::{common::*, error::Sv2MessageError, mining::*, template_distribution::*};
 use codec_sv2::binary_sv2::Sv2Option;
 use common_messages_sv2::{
     ChannelEndpointChanged as InnerChannelEndpointChanged, Protocol as InnerProtocol,
@@ -31,7 +31,15 @@ use mining_sv2::{
 };
 use parsers_sv2::{
     AnyMessage as InnerAnyMessage, CommonMessages as InnerCommonMessages,
-    Mining as InnerMiningMessages,
+    Mining as InnerMiningMessages, TemplateDistribution as InnerTemplateDistributionMessages,
+};
+use template_distribution_sv2::{
+    CoinbaseOutputConstraints as InnerCoinbaseOutputConstraints, NewTemplate as InnerNewTemplate,
+    RequestTransactionData as InnerRequestTransactionData,
+    RequestTransactionDataError as InnerRequestTransactionDataError,
+    RequestTransactionDataSuccess as InnerRequestTransactionDataSuccess,
+    SetNewPrevHash as InnerSetNewPrevHashTemplateDistribution,
+    SubmitSolution as InnerSubmitSolution,
 };
 
 use std::convert::{TryFrom, TryInto};
@@ -71,6 +79,13 @@ pub enum Sv2Message {
     SetGroupChannel(SetGroupChannel),
     // job declaration subprotocol messages
     // template distribution subprotocol messages
+    CoinbaseOutputConstraints(CoinbaseOutputConstraints),
+    NewTemplate(NewTemplate),
+    SetNewPrevHashTemplateDistribution(SetNewPrevHashTemplateDistribution),
+    RequestTransactionData(RequestTransactionData),
+    RequestTransactionDataSuccess(RequestTransactionDataSuccess),
+    RequestTransactionDataError(RequestTransactionDataError),
+    SubmitSolution(SubmitSolution),
 }
 
 /// Convert from UniFFI Sv2Message to internal InnerAnyMessage
@@ -516,6 +531,143 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
+        Sv2Message::CoinbaseOutputConstraints(coinbase_output_constraints) => {
+            let inner_coinbase_output_constraints = InnerCoinbaseOutputConstraints {
+                coinbase_output_max_additional_size: coinbase_output_constraints
+                    .coinbase_output_max_additional_size,
+                coinbase_output_max_additional_sigops: coinbase_output_constraints
+                    .coinbase_output_max_additional_sigops,
+            };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::CoinbaseOutputConstraints(
+                    inner_coinbase_output_constraints,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::NewTemplate(new_template) => {
+            let merkle_path: Vec<_> = new_template
+                .merkle_path
+                .into_iter()
+                .map(|path| {
+                    path.try_into()
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let merkle_path = merkle_path.into();
+            let inner_new_template = InnerNewTemplate {
+                template_id: new_template.template_id,
+                future_template: new_template.future_template,
+                version: new_template.version,
+                coinbase_tx_version: new_template.coinbase_tx_version,
+                coinbase_prefix: new_template
+                    .coinbase_prefix
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                coinbase_tx_input_sequence: new_template.coinbase_tx_input_sequence,
+                coinbase_tx_value_remaining: new_template.coinbase_tx_value_remaining,
+                coinbase_tx_outputs_count: new_template.coinbase_tx_outputs_count,
+                coinbase_tx_outputs: new_template
+                    .coinbase_tx_outputs
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                coinbase_tx_locktime: new_template.coinbase_tx_locktime,
+                merkle_path,
+            };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::NewTemplate(inner_new_template),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::SetNewPrevHashTemplateDistribution(set_new_prev_hash_template_distribution) => {
+            let inner_set_new_prev_hash_template_distribution =
+                InnerSetNewPrevHashTemplateDistribution {
+                    template_id: set_new_prev_hash_template_distribution.template_id,
+                    prev_hash: set_new_prev_hash_template_distribution
+                        .prev_hash
+                        .try_into()
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                    header_timestamp: set_new_prev_hash_template_distribution.header_timestamp,
+                    n_bits: set_new_prev_hash_template_distribution.nbits,
+                    target: set_new_prev_hash_template_distribution
+                        .target
+                        .try_into()
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::SetNewPrevHash(
+                    inner_set_new_prev_hash_template_distribution,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::RequestTransactionData(request_transaction_data) => {
+            let inner_request_transaction_data = InnerRequestTransactionData {
+                template_id: request_transaction_data.template_id,
+            };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::RequestTransactionData(
+                    inner_request_transaction_data,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::RequestTransactionDataSuccess(request_transaction_data_success) => {
+            let transaction_list: Vec<_> = request_transaction_data_success
+                .transaction_list
+                .into_iter()
+                .map(|tx| {
+                    tx.try_into()
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let transaction_list = transaction_list.into();
+            let inner_request_transaction_data_success = InnerRequestTransactionDataSuccess {
+                template_id: request_transaction_data_success.template_id,
+                excess_data: request_transaction_data_success
+                    .excess_data
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                transaction_list,
+            };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::RequestTransactionDataSuccess(
+                    inner_request_transaction_data_success,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::RequestTransactionDataError(request_transaction_data_error) => {
+            let inner_request_transaction_data_error = InnerRequestTransactionDataError {
+                template_id: request_transaction_data_error.template_id,
+                error_code: request_transaction_data_error
+                    .error_code
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeString)?,
+            };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::RequestTransactionDataError(
+                    inner_request_transaction_data_error,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::SubmitSolution(submit_solution) => {
+            let inner_submit_solution = InnerSubmitSolution {
+                template_id: submit_solution.template_id,
+                version: submit_solution.version,
+                header_timestamp: submit_solution.header_timestamp,
+                header_nonce: submit_solution.header_nonce,
+                coinbase_tx: submit_solution
+                    .coinbase_tx
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+            };
+            let inner_message = InnerAnyMessage::TemplateDistribution(
+                InnerTemplateDistributionMessages::SubmitSolution(inner_submit_solution),
+            );
+            Ok(inner_message.into_static())
+        }
         _ => todo!(),
     }
 }
@@ -875,6 +1027,109 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 channel_ids,
             })
         }
+        InnerAnyMessage::TemplateDistribution(
+            InnerTemplateDistributionMessages::CoinbaseOutputConstraints(
+                inner_coinbase_output_constraints,
+            ),
+        ) => Sv2Message::CoinbaseOutputConstraints(CoinbaseOutputConstraints {
+            coinbase_output_max_additional_size: inner_coinbase_output_constraints
+                .coinbase_output_max_additional_size,
+            coinbase_output_max_additional_sigops: inner_coinbase_output_constraints
+                .coinbase_output_max_additional_sigops,
+        }),
+        InnerAnyMessage::TemplateDistribution(InnerTemplateDistributionMessages::NewTemplate(
+            inner_new_template,
+        )) => {
+            let merkle_path = inner_new_template
+                .merkle_path
+                .clone()
+                .into_inner()
+                .iter()
+                .map(|path| path.inner_as_ref().to_vec())
+                .collect();
+            Sv2Message::NewTemplate(NewTemplate {
+                template_id: inner_new_template.template_id,
+                future_template: inner_new_template.future_template,
+                version: inner_new_template.version,
+                coinbase_tx_version: inner_new_template.coinbase_tx_version,
+                coinbase_prefix: inner_new_template.coinbase_prefix.inner_as_ref().to_vec(),
+                coinbase_tx_input_sequence: inner_new_template.coinbase_tx_input_sequence,
+                coinbase_tx_value_remaining: inner_new_template.coinbase_tx_value_remaining,
+                coinbase_tx_outputs_count: inner_new_template.coinbase_tx_outputs_count,
+                coinbase_tx_outputs: inner_new_template
+                    .coinbase_tx_outputs
+                    .inner_as_ref()
+                    .to_vec(),
+                coinbase_tx_locktime: inner_new_template.coinbase_tx_locktime,
+                merkle_path,
+            })
+        }
+        InnerAnyMessage::TemplateDistribution(
+            InnerTemplateDistributionMessages::SetNewPrevHash(
+                inner_set_new_prev_hash_template_distribution,
+            ),
+        ) => Sv2Message::SetNewPrevHashTemplateDistribution(SetNewPrevHashTemplateDistribution {
+            template_id: inner_set_new_prev_hash_template_distribution.template_id,
+            prev_hash: inner_set_new_prev_hash_template_distribution
+                .prev_hash
+                .inner_as_ref()
+                .to_vec(),
+            header_timestamp: inner_set_new_prev_hash_template_distribution.header_timestamp,
+            nbits: inner_set_new_prev_hash_template_distribution.n_bits,
+            target: inner_set_new_prev_hash_template_distribution
+                .target
+                .inner_as_ref()
+                .to_vec(),
+        }),
+        InnerAnyMessage::TemplateDistribution(
+            InnerTemplateDistributionMessages::RequestTransactionData(
+                inner_request_transaction_data,
+            ),
+        ) => Sv2Message::RequestTransactionData(RequestTransactionData {
+            template_id: inner_request_transaction_data.template_id,
+        }),
+        InnerAnyMessage::TemplateDistribution(
+            InnerTemplateDistributionMessages::RequestTransactionDataSuccess(
+                inner_request_transaction_data_success,
+            ),
+        ) => {
+            let transaction_list: Vec<_> = inner_request_transaction_data_success
+                .transaction_list
+                .inner_as_ref()
+                .iter()
+                .map(|tx| tx.to_vec())
+                .collect();
+            Sv2Message::RequestTransactionDataSuccess(RequestTransactionDataSuccess {
+                template_id: inner_request_transaction_data_success.template_id,
+                excess_data: inner_request_transaction_data_success
+                    .excess_data
+                    .inner_as_ref()
+                    .to_vec(),
+                transaction_list,
+            })
+        }
+        InnerAnyMessage::TemplateDistribution(
+            InnerTemplateDistributionMessages::RequestTransactionDataError(
+                inner_request_transaction_data_error,
+            ),
+        ) => Sv2Message::RequestTransactionDataError(RequestTransactionDataError {
+            template_id: inner_request_transaction_data_error.template_id,
+            error_code: String::from_utf8_lossy(
+                inner_request_transaction_data_error
+                    .error_code
+                    .inner_as_ref(),
+            )
+            .to_string(),
+        }),
+        InnerAnyMessage::TemplateDistribution(
+            InnerTemplateDistributionMessages::SubmitSolution(inner_submit_solution),
+        ) => Sv2Message::SubmitSolution(SubmitSolution {
+            template_id: inner_submit_solution.template_id,
+            version: inner_submit_solution.version,
+            header_timestamp: inner_submit_solution.header_timestamp,
+            header_nonce: inner_submit_solution.header_nonce,
+            coinbase_tx: inner_submit_solution.coinbase_tx.inner_as_ref().to_vec(),
+        }),
         _ => todo!(),
     }
 }

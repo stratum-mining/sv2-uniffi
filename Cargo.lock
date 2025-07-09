@@ -1122,6 +1122,7 @@ dependencies = [
  "common_messages_sv2",
  "mining_sv2",
  "parsers_sv2",
+ "template_distribution_sv2",
  "uniffi",
 ]
 

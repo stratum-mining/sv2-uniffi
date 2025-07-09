@@ -9,6 +9,7 @@ channels_sv2 = "0.1.0"
 parsers_sv2 = "0.1.0"
 common_messages_sv2 = "5.0.0"
 mining_sv2 = "4.0.0"
+template_distribution_sv2 = "3.1.0"
 
 uniffi = { version = "0.29.3", features = ["cli"] }
 
