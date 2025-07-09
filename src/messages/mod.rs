@@ -3,7 +3,8 @@ pub mod error;
 
 use crate::messages::{common::*, error::Sv2MessageError};
 use common_messages_sv2::{
-    Protocol as InnerProtocol, SetupConnection as InnerSetupConnection,
+    ChannelEndpointChanged as InnerChannelEndpointChanged, Protocol as InnerProtocol,
+    Reconnect as InnerReconnect, SetupConnection as InnerSetupConnection,
     SetupConnectionError as InnerSetupConnectionError,
     SetupConnectionSuccess as InnerSetupConnectionSuccess,
 };
@@ -19,6 +20,8 @@ pub enum Sv2Message {
     SetupConnection(SetupConnection),
     SetupConnectionSuccess(SetupConnectionSuccess),
     SetupConnectionError(SetupConnectionError),
+    ChannelEndpointChanged(ChannelEndpointChanged),
+    Reconnect(Reconnect),
     // todo
 }
 
@@ -85,6 +88,27 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
+        Sv2Message::ChannelEndpointChanged(channel_endpoint_changed) => {
+            let inner_channel_endpoint_changed = InnerChannelEndpointChanged {
+                channel_id: channel_endpoint_changed.channel_id,
+            };
+            let inner_message = InnerAnyMessage::Common(
+                InnerCommonMessages::ChannelEndpointChanged(inner_channel_endpoint_changed),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::Reconnect(reconnect) => {
+            let inner_reconnect = InnerReconnect {
+                new_host: reconnect
+                    .new_host
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeString)?,
+                new_port: reconnect.new_port,
+            };
+            let inner_message =
+                InnerAnyMessage::Common(InnerCommonMessages::Reconnect(inner_reconnect));
+            Ok(inner_message.into_static())
+        }
         _ => todo!(),
     }
 }
@@ -130,6 +154,18 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
             )
             .to_string(),
         }),
+        InnerAnyMessage::Common(InnerCommonMessages::ChannelEndpointChanged(
+            inner_channel_endpoint_changed,
+        )) => Sv2Message::ChannelEndpointChanged(ChannelEndpointChanged {
+            channel_id: inner_channel_endpoint_changed.channel_id,
+        }),
+        InnerAnyMessage::Common(InnerCommonMessages::Reconnect(inner_reconnect)) => {
+            Sv2Message::Reconnect(Reconnect {
+                new_host: String::from_utf8_lossy(inner_reconnect.new_host.inner_as_ref())
+                    .to_string(),
+                new_port: inner_reconnect.new_port,
+            })
+        }
         _ => todo!(),
     }
 }

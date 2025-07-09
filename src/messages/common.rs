@@ -23,3 +23,14 @@ pub struct SetupConnectionError {
     pub flags: u32,
     pub error_code: String,
 }
+
+#[derive(uniffi::Record)]
+pub struct ChannelEndpointChanged {
+    pub channel_id: u32,
+}
+
+#[derive(uniffi::Record)]
+pub struct Reconnect {
+    pub new_host: String,
+    pub new_port: u16,
+}
