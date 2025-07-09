@@ -1,5 +1,5 @@
 use codec_sv2::{StandardNoiseDecoder as InnerNoiseDecoder, StandardSv2Frame};
-use roles_logic_sv2::parsers::AnyMessage as InnerAnyMessage;
+use parsers_sv2::AnyMessage as InnerAnyMessage;
 
 use std::{
     convert::TryInto,

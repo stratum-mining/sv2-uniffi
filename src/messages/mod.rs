@@ -2,14 +2,12 @@ pub mod common;
 pub mod error;
 
 use crate::messages::{common::*, error::Sv2MessageError};
-use roles_logic_sv2::{
-    common_messages_sv2::{
-        Protocol as InnerProtocol, SetupConnection as InnerSetupConnection,
-        SetupConnectionError as InnerSetupConnectionError,
-        SetupConnectionSuccess as InnerSetupConnectionSuccess,
-    },
-    parsers::{AnyMessage as InnerAnyMessage, CommonMessages as InnerCommonMessages},
+use common_messages_sv2::{
+    Protocol as InnerProtocol, SetupConnection as InnerSetupConnection,
+    SetupConnectionError as InnerSetupConnectionError,
+    SetupConnectionSuccess as InnerSetupConnectionSuccess,
 };
+use parsers_sv2::{AnyMessage as InnerAnyMessage, CommonMessages as InnerCommonMessages};
 
 use std::convert::{TryFrom, TryInto};
 

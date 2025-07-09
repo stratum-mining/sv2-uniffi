@@ -1,5 +1,5 @@
 use codec_sv2::{NoiseEncoder as InnerNoiseEncoder, StandardEitherFrame, StandardSv2Frame};
-use roles_logic_sv2::parsers::AnyMessage as InnerAnyMessage;
+use parsers_sv2::AnyMessage as InnerAnyMessage;
 
 use std::{
     convert::TryInto,
@@ -55,6 +55,8 @@ impl Sv2Encoder {
             .encode(message_frame, &mut inner_state)
             .map_err(|_| Sv2CodecError::FailedToConvertMessageToFrame)?;
 
-        Ok(frame.as_ref().to_vec())
+        let bytes: &[u8] = frame.as_ref();
+
+        Ok(bytes.to_vec())
     }
 }
