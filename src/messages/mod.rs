@@ -4,13 +4,24 @@ pub mod job_declaration;
 pub mod mining;
 pub mod template_distribution;
 
-use crate::messages::{common::*, error::Sv2MessageError, mining::*, template_distribution::*};
+use crate::messages::{
+    common::*, error::Sv2MessageError, job_declaration::*, mining::*, template_distribution::*,
+};
 use codec_sv2::binary_sv2::Sv2Option;
 use common_messages_sv2::{
     ChannelEndpointChanged as InnerChannelEndpointChanged, Protocol as InnerProtocol,
     Reconnect as InnerReconnect, SetupConnection as InnerSetupConnection,
     SetupConnectionError as InnerSetupConnectionError,
     SetupConnectionSuccess as InnerSetupConnectionSuccess,
+};
+use job_declaration_sv2::{
+    AllocateMiningJobToken as InnerAllocateMiningJobToken,
+    AllocateMiningJobTokenSuccess as InnerAllocateMiningJobTokenSuccess,
+    DeclareMiningJob as InnerDeclareMiningJob, DeclareMiningJobError as InnerDeclareMiningJobError,
+    DeclareMiningJobSuccess as InnerDeclareMiningJobSuccess,
+    ProvideMissingTransactions as InnerProvideMissingTransactions,
+    ProvideMissingTransactionsSuccess as InnerProvideMissingTransactionsSuccess,
+    PushSolution as InnerPushSolution,
 };
 use mining_sv2::{
     CloseChannel as InnerCloseChannel, NewExtendedMiningJob as InnerNewExtendedMiningJob,
@@ -31,7 +42,8 @@ use mining_sv2::{
 };
 use parsers_sv2::{
     AnyMessage as InnerAnyMessage, CommonMessages as InnerCommonMessages,
-    Mining as InnerMiningMessages, TemplateDistribution as InnerTemplateDistributionMessages,
+    JobDeclaration as InnerJobDeclarationMessages, Mining as InnerMiningMessages,
+    TemplateDistribution as InnerTemplateDistributionMessages,
 };
 use template_distribution_sv2::{
     CoinbaseOutputConstraints as InnerCoinbaseOutputConstraints, NewTemplate as InnerNewTemplate,
@@ -78,6 +90,14 @@ pub enum Sv2Message {
     SetTarget(SetTarget),
     SetGroupChannel(SetGroupChannel),
     // job declaration subprotocol messages
+    AllocateMiningJobToken(AllocateMiningJobToken),
+    AllocateMiningJobTokenSuccess(AllocateMiningJobTokenSuccess),
+    DeclareMiningJob(DeclareMiningJob),
+    DeclareMiningJobSuccess(DeclareMiningJobSuccess),
+    DeclareMiningJobError(DeclareMiningJobError),
+    ProvideMissingTransactions(ProvideMissingTransactions),
+    ProvideMissingTransactionsSuccess(ProvideMissingTransactionsSuccess),
+    PushSolution(PushSolution),
     // template distribution subprotocol messages
     CoinbaseOutputConstraints(CoinbaseOutputConstraints),
     NewTemplate(NewTemplate),
@@ -668,7 +688,164 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        _ => todo!(),
+        Sv2Message::AllocateMiningJobToken(allocate_mining_job_token) => {
+            let inner_allocate_mining_job_token = InnerAllocateMiningJobToken {
+                user_identifier: allocate_mining_job_token
+                    .user_identifier
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeString)?,
+                request_id: allocate_mining_job_token.request_id,
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::AllocateMiningJobToken(
+                    inner_allocate_mining_job_token,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::AllocateMiningJobTokenSuccess(allocate_mining_job_token_success) => {
+            let inner_allocate_mining_job_token_success = InnerAllocateMiningJobTokenSuccess {
+                request_id: allocate_mining_job_token_success.request_id,
+                mining_job_token: allocate_mining_job_token_success
+                    .mining_job_token
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                coinbase_outputs: allocate_mining_job_token_success
+                    .coinbase_tx_outputs
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::AllocateMiningJobTokenSuccess(
+                    inner_allocate_mining_job_token_success,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::DeclareMiningJob(declare_mining_job) => {
+            let tx_ids_list: Vec<_> = declare_mining_job
+                .tx_ids_list
+                .into_iter()
+                .map(|tx_id| {
+                    tx_id
+                        .try_into()
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let tx_ids_list = tx_ids_list.into();
+            let inner_declare_mining_job = InnerDeclareMiningJob {
+                request_id: declare_mining_job.request_id,
+                mining_job_token: declare_mining_job
+                    .mining_job_token
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                version: declare_mining_job.version,
+                coinbase_prefix: declare_mining_job
+                    .coinbase_tx_prefix
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                coinbase_suffix: declare_mining_job
+                    .coinbase_tx_suffix
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                tx_ids_list,
+                excess_data: declare_mining_job
+                    .excess_data
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::DeclareMiningJob(inner_declare_mining_job),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::DeclareMiningJobSuccess(declare_mining_job_success) => {
+            let inner_declare_mining_job_success = InnerDeclareMiningJobSuccess {
+                request_id: declare_mining_job_success.request_id,
+                new_mining_job_token: declare_mining_job_success
+                    .new_mining_job_token
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::DeclareMiningJobSuccess(
+                    inner_declare_mining_job_success,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::DeclareMiningJobError(declare_mining_job_error) => {
+            let inner_declare_mining_job_error = InnerDeclareMiningJobError {
+                request_id: declare_mining_job_error.request_id,
+                error_code: declare_mining_job_error
+                    .error_code
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeString)?,
+                error_details: declare_mining_job_error
+                    .error_details
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::DeclareMiningJobError(inner_declare_mining_job_error),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::ProvideMissingTransactions(provide_missing_transactions) => {
+            let inner_provide_missing_transactions = InnerProvideMissingTransactions {
+                request_id: provide_missing_transactions.request_id,
+                unknown_tx_position_list: provide_missing_transactions
+                    .unknown_tx_position_list
+                    .into(),
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::ProvideMissingTransactions(
+                    inner_provide_missing_transactions,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::ProvideMissingTransactionsSuccess(provide_missing_transactions_success) => {
+            let transaction_list: Vec<_> = provide_missing_transactions_success
+                .transaction_list
+                .into_iter()
+                .map(|tx| {
+                    tx.try_into()
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let inner_provide_missing_transactions_success =
+                InnerProvideMissingTransactionsSuccess {
+                    request_id: provide_missing_transactions_success.request_id,
+                    transaction_list: transaction_list.into(),
+                };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::ProvideMissingTransactionsSuccess(
+                    inner_provide_missing_transactions_success,
+                ),
+            );
+            Ok(inner_message.into_static())
+        }
+        Sv2Message::PushSolution(push_solution) => {
+            let inner_push_solution = InnerPushSolution {
+                extranonce: push_solution
+                    .extranonce
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                prev_hash: push_solution
+                    .prev_hash
+                    .try_into()
+                    .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
+                nonce: push_solution.nonce,
+                ntime: push_solution.ntime,
+                nbits: push_solution.nbits,
+                version: push_solution.version,
+            };
+            let inner_message = InnerAnyMessage::JobDeclaration(
+                InnerJobDeclarationMessages::PushSolution(inner_push_solution),
+            );
+            Ok(inner_message.into_static())
+        }
     }
 }
 
@@ -1130,6 +1307,121 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
             header_nonce: inner_submit_solution.header_nonce,
             coinbase_tx: inner_submit_solution.coinbase_tx.inner_as_ref().to_vec(),
         }),
-        _ => todo!(),
+        InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::AllocateMiningJobToken(
+            inner_allocate_mining_job_token,
+        )) => Sv2Message::AllocateMiningJobToken(AllocateMiningJobToken {
+            user_identifier: String::from_utf8_lossy(
+                inner_allocate_mining_job_token
+                    .user_identifier
+                    .inner_as_ref(),
+            )
+            .to_string(),
+            request_id: inner_allocate_mining_job_token.request_id,
+        }),
+        InnerAnyMessage::JobDeclaration(
+            InnerJobDeclarationMessages::AllocateMiningJobTokenSuccess(
+                inner_allocate_mining_job_token_success,
+            ),
+        ) => Sv2Message::AllocateMiningJobTokenSuccess(AllocateMiningJobTokenSuccess {
+            request_id: inner_allocate_mining_job_token_success.request_id,
+            mining_job_token: inner_allocate_mining_job_token_success
+                .mining_job_token
+                .inner_as_ref()
+                .to_vec(),
+            coinbase_tx_outputs: inner_allocate_mining_job_token_success
+                .coinbase_outputs
+                .inner_as_ref()
+                .to_vec(),
+        }),
+        InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::DeclareMiningJob(
+            inner_declare_mining_job,
+        )) => {
+            let tx_ids_list: Vec<_> = inner_declare_mining_job
+                .tx_ids_list
+                .inner_as_ref()
+                .iter()
+                .map(|tx_id| tx_id.to_vec())
+                .collect();
+            Sv2Message::DeclareMiningJob(DeclareMiningJob {
+                request_id: inner_declare_mining_job.request_id,
+                mining_job_token: inner_declare_mining_job
+                    .mining_job_token
+                    .inner_as_ref()
+                    .to_vec(),
+                version: inner_declare_mining_job.version,
+                coinbase_tx_prefix: inner_declare_mining_job
+                    .coinbase_prefix
+                    .inner_as_ref()
+                    .to_vec(),
+                coinbase_tx_suffix: inner_declare_mining_job
+                    .coinbase_suffix
+                    .inner_as_ref()
+                    .to_vec(),
+                tx_ids_list,
+                excess_data: inner_declare_mining_job.excess_data.inner_as_ref().to_vec(),
+            })
+        }
+        InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::DeclareMiningJobSuccess(
+            inner_declare_mining_job_success,
+        )) => Sv2Message::DeclareMiningJobSuccess(DeclareMiningJobSuccess {
+            request_id: inner_declare_mining_job_success.request_id,
+            new_mining_job_token: inner_declare_mining_job_success
+                .new_mining_job_token
+                .inner_as_ref()
+                .to_vec(),
+        }),
+        InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::DeclareMiningJobError(
+            inner_declare_mining_job_error,
+        )) => Sv2Message::DeclareMiningJobError(DeclareMiningJobError {
+            request_id: inner_declare_mining_job_error.request_id,
+            error_code: String::from_utf8_lossy(
+                inner_declare_mining_job_error.error_code.inner_as_ref(),
+            )
+            .to_string(),
+            error_details: inner_declare_mining_job_error
+                .error_details
+                .inner_as_ref()
+                .to_vec(),
+        }),
+        InnerAnyMessage::JobDeclaration(
+            InnerJobDeclarationMessages::ProvideMissingTransactions(
+                inner_provide_missing_transactions,
+            ),
+        ) => {
+            let unknown_tx_position_list: Vec<u16> = inner_provide_missing_transactions
+                .unknown_tx_position_list
+                .clone()
+                .into_inner();
+            Sv2Message::ProvideMissingTransactions(ProvideMissingTransactions {
+                request_id: inner_provide_missing_transactions.request_id,
+                unknown_tx_position_list,
+            })
+        }
+        InnerAnyMessage::JobDeclaration(
+            InnerJobDeclarationMessages::ProvideMissingTransactionsSuccess(
+                inner_provide_missing_transactions_success,
+            ),
+        ) => {
+            let transaction_list: Vec<_> = inner_provide_missing_transactions_success
+                .transaction_list
+                .inner_as_ref()
+                .iter()
+                .map(|tx| tx.to_vec())
+                .collect();
+            Sv2Message::ProvideMissingTransactionsSuccess(ProvideMissingTransactionsSuccess {
+                request_id: inner_provide_missing_transactions_success.request_id,
+                transaction_list,
+            })
+        }
+        InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::PushSolution(
+            inner_push_solution,
+        )) => Sv2Message::PushSolution(PushSolution {
+            extranonce: inner_push_solution.extranonce.inner_as_ref().to_vec(),
+            prev_hash: inner_push_solution.prev_hash.inner_as_ref().to_vec(),
+            nonce: inner_push_solution.nonce,
+            ntime: inner_push_solution.ntime,
+            nbits: inner_push_solution.nbits,
+            version: inner_push_solution.version,
+        }),
     }
 }

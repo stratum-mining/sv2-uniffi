@@ -1120,6 +1120,7 @@ dependencies = [
  "channels_sv2",
  "codec_sv2",
  "common_messages_sv2",
+ "job_declaration_sv2",
  "mining_sv2",
  "parsers_sv2",
  "template_distribution_sv2",
