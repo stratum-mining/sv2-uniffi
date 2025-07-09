@@ -1,4 +1,7 @@
 pub mod common;
+pub mod mining;
+pub mod job_declaration;
+pub mod template_distribution;
 pub mod error;
 
 use crate::messages::{common::*, error::Sv2MessageError};
