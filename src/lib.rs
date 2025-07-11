@@ -1,3 +1,4 @@
+mod channels;
 mod codec;
 mod messages;
 

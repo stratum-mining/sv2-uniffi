@@ -10,6 +10,7 @@ from test_handshake import test_handshake
 from test_message_creation import test_message_creation
 from test_encoding_decoding import test_encoding_decoding
 from test_error_handling import test_error_handling
+from test_extended_channel_server import test_extended_channel_server
 
 def run_all_tests():
     """Run all tests and report results."""
@@ -39,6 +40,10 @@ def run_all_tests():
     # Test 5: Error handling
     print("\n5. Error Handling Test:")
     results.append(test_error_handling())
+    
+    # Test 6: Extended channel server
+    print("\n6. Extended Channel Server Test:")
+    results.append(test_extended_channel_server())
     
     # Summary
     print("\n" + "=" * 40)
