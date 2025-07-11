@@ -1,4 +1,4 @@
-use mining_sv2::{ExtendedExtranonce, MAX_EXTRANONCE_LEN};
+use mining_sv2::{ExtendedExtranonce, FULL_EXTRANONCE_LEN};
 use std::fmt;
 use std::fmt::Display;
 use std::ops::Range;
@@ -32,7 +32,7 @@ impl Sv2ExtranoncePrefixFactoryExtended {
         };
         let range_2 = Range {
             start: allocation_size as usize,
-            end: MAX_EXTRANONCE_LEN,
+            end: FULL_EXTRANONCE_LEN,
         };
         let inner = ExtendedExtranonce::new(range_0, range_1, range_2, static_prefix)
             .map_err(|_| ExtranoncePrefixFactoryError::FailedToCreateExtendedExtranonce)?;
@@ -87,7 +87,7 @@ impl Sv2ExtranoncePrefixFactoryStandard {
         };
         let range_2 = Range {
             start: 1, // this is a workaround while ExtendedExtranonce is used for both standard and extended channels
-            end: MAX_EXTRANONCE_LEN, // this is a workaround while ExtendedExtranonce is used for both standard and extended channels
+            end: FULL_EXTRANONCE_LEN, // this is a workaround while ExtendedExtranonce is used for both standard and extended channels
         };
         let inner = ExtendedExtranonce::new(range_0, range_1, range_2, static_prefix)
             .map_err(|_| ExtranoncePrefixFactoryError::FailedToCreateExtendedExtranonce)?;
