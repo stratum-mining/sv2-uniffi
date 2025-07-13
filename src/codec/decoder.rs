@@ -37,11 +37,10 @@ impl Sv2Decoder {
     ) -> Result<Sv2Message, Sv2CodecError> {
         let mut inner_decoder = self.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
 
-        let mut inner_state = state
-            .inner
-            .lock()
-            .map_err(|_| Sv2CodecError::LockError)?
-            .clone();
+        let mut inner_state = {
+            let state_guard = state.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
+            state_guard.clone()
+        };
 
         // Write the entire frame to the decoder buffer
         let mut frame_offset = 0;
@@ -81,6 +80,13 @@ impl Sv2Decoder {
                             .try_into()
                             .map_err(|_| Sv2CodecError::FailedToDecodeFrame)?;
                     let sv2_message: InnerAnyMessage<'static> = sv2_message.into_static();
+
+                    // Update the original state with changes
+                    {
+                        let mut state_guard =
+                            state.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
+                        *state_guard = inner_state;
+                    }
 
                     return Ok(inner_to_sv2_message(&sv2_message));
                 }

@@ -45,18 +45,28 @@ impl Sv2Encoder {
             .map_err(|_| Sv2CodecError::FailedToConvertMessageToFrame)
             .map(|sv2_frame: StandardSv2Frame<InnerAnyMessage<'static>>| sv2_frame.into())?;
 
-        let mut inner_state = codec_state
-            .inner
-            .lock()
-            .map_err(|_| Sv2CodecError::LockError)?
-            .clone();
+        let mut inner_state = {
+            let state_guard = codec_state
+                .inner
+                .lock()
+                .map_err(|_| Sv2CodecError::LockError)?;
+            state_guard.clone()
+        };
 
         let frame = inner_encoder
             .encode(message_frame, &mut inner_state)
             .map_err(|_| Sv2CodecError::FailedToConvertMessageToFrame)?;
 
-        let bytes: &[u8] = frame.as_ref();
+        // Update the original state with changes
+        {
+            let mut state_guard = codec_state
+                .inner
+                .lock()
+                .map_err(|_| Sv2CodecError::LockError)?;
+            *state_guard = inner_state;
+        }
 
+        let bytes: &[u8] = frame.as_ref();
         Ok(bytes.to_vec())
     }
 }
