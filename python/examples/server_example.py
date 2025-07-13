@@ -23,7 +23,7 @@ from sv2 import (
     Sv2Message,
     SetupConnectionSuccess,
     Sv2CodecError,
-    Sv2MessageError
+    Sv2MessageError,
 )
 
 def get_authority_keypair() -> tuple[bytes, bytes]:
@@ -78,97 +78,139 @@ def perform_handshake(client_socket: socket.socket, responder: Sv2CodecState) ->
         
         return True
         
-    except Sv2CodecError as e:
-        print(f"✗ Handshake failed with codec error: {e}")
-        return False
-    except Exception as e:
-        print(f"✗ Handshake failed with error: {e}")
+    except Exception as e:  # Catch all exceptions since Sv2CodecError might be a subclass
+        # Check if it's a codec error by checking the type name
+        if 'Sv2CodecError' in str(type(e)):
+            print(f"✗ Handshake failed with codec error: {e}")
+        else:
+            print(f"✗ Handshake failed with error: {e}")
         return False
 
 def handle_messages(client_socket: socket.socket, responder: Sv2CodecState):
     """
     Handle incoming encrypted messages after handshake.
+    Uses incremental reading to handle frame boundaries properly.
     """
     decoder = Sv2Decoder()
     encoder = Sv2Encoder()
     print("\n--- Message Handling Phase ---")
     print("Waiting for encrypted messages...")
     
+    # Buffer to accumulate incoming data
+    data_buffer = bytearray()
+    
     try:
+        message_count = 0
+        
         while True:
-            # Read the complete encrypted frame
-            # First, try to read some initial data to see what we get
-            print("\nWaiting for encrypted message frame...")
-            initial_data = client_socket.recv(4096)  # Read up to 4KB
-            
-            if not initial_data:
-                print("Client disconnected")
+            try:
+                print("\n⏳ Waiting for next data from client...")
+                
+                # Read new data from socket
+                new_data = client_socket.recv(4096)
+                
+                if not new_data:
+                    print("Client disconnected")
+                    break
+                
+                # Add new data to buffer
+                data_buffer.extend(new_data)
+                print(f"📦 Received {len(new_data)} bytes, buffer now has {len(data_buffer)} bytes")
+                
+                # Try to decode messages from the buffer
+                processed_any = True
+                while processed_any and len(data_buffer) > 0:
+                    processed_any = False
+                    
+                    # Try different buffer sizes to find a complete frame
+                    for try_length in range(7, len(data_buffer) + 1):  # Start from minimum reasonable frame size
+                        try:
+                            # Try to decode with first 'try_length' bytes
+                            test_decoder = Sv2Decoder()  # Use fresh decoder for each test
+                            decoded_message = test_decoder.decode(bytes(data_buffer[:try_length]), responder)
+                            
+                            # Successfully decoded a message!
+                            message_count += 1
+                            print(f"\n--- Message #{message_count} Decoded ---")
+                            print(f"Frame length: {try_length} bytes")
+                            print(f"Message type: {type(decoded_message).__name__}")
+                            
+                            # Handle different message types
+                            if decoded_message.is_SETUP_CONNECTION():
+                                print("\n🎉 Received SetupConnection Message!")
+                                
+                                # Extract the SetupConnection data
+                                setup_connection = decoded_message[0]  # type: ignore
+                                    
+                                print("--- SetupConnection Details ---")
+                                print(f"Protocol: {setup_connection.protocol}")
+                                print(f"Version Range: {setup_connection.min_version}-{setup_connection.max_version}")
+                                print(f"Flags: {setup_connection.flags}")
+                                print(f"Endpoint: {setup_connection.endpoint_host}:{setup_connection.endpoint_port}")
+                                print(f"Vendor: {setup_connection.vendor}")
+                                print(f"Hardware Version: {setup_connection.hardware_version}")
+                                print(f"Firmware: {setup_connection.firmware}")
+                                print(f"Device ID: {setup_connection.device_id}")
+                                
+                                # Create and send SetupConnectionSuccess response
+                                print("\n--- Creating SetupConnectionSuccess Response ---")
+                                
+                                # Use the same version and flags from the received message
+                                # For used_version, we'll use the max_version from the client's range
+                                used_version = setup_connection.max_version
+                                flags = setup_connection.flags
+                                
+                                setup_success = SetupConnectionSuccess(
+                                    used_version=used_version,
+                                    flags=flags
+                                )
+                                
+                                # Wrap in Sv2Message enum
+                                success_message = Sv2Message.SETUP_CONNECTION_SUCCESS(setup_success)
+                                
+                                print(f"✓ Created SetupConnectionSuccess:")
+                                print(f"  - Used Version: {used_version}")
+                                print(f"  - Flags: {flags}")
+                                
+                                # Encode and send the response
+                                try:
+                                    encoded_response = encoder.encode(success_message, responder)  # type: ignore
+                                    client_socket.send(encoded_response)
+                                    print(f"✓ Sent SetupConnectionSuccess response: {len(encoded_response)} bytes")
+                                    print(f"  Response data: {encoded_response.hex()[:64]}...")
+                                    
+                                except Exception as e:
+                                    print(f"✗ Failed to encode/send response: {e}")
+                                
+                            else:
+                                print(f"📨 Received other message type: {type(decoded_message).__name__}")
+                            
+                            # Remove the processed frame from buffer
+                            data_buffer = data_buffer[try_length:]
+                            print(f"🔄 Consumed {try_length} bytes, {len(data_buffer)} bytes remaining in buffer")
+                            
+                            processed_any = True
+                            break  # Exit the try_length loop and try to decode next frame
+                            
+                        except Exception as decode_error:
+                            # This length doesn't work, try next length
+                            continue
+                    
+                    # If we couldn't decode any frame, we need more data
+                    if not processed_any:
+                        print(f"⏳ Buffer contains partial frame, waiting for more data...")
+                        print(f"   Buffer size: {len(data_buffer)} bytes")
+                        break  # Exit the processing loop and read more data
+                        
+            except Exception as e:
+                print(f"⚠ Error receiving message: {e}")
                 break
                 
-            print(f"✓ Received encrypted frame: {len(initial_data)} bytes")
-            print(f"Frame data: {initial_data.hex()[:64]}...")
-            
-            # Attempt to decode the complete frame
-            try:
-                decoded_message = decoder.decode(initial_data, responder)
-                print("✓ Message decoded successfully!")
-                
-                # Check if it's a SetupConnection message
-                if decoded_message.is_SETUP_CONNECTION():
-                    print("\n🎉 Received SetupConnection Message!")
-                    
-                    # Extract the SetupConnection data
-                    setup_connection = decoded_message[0]
-                        
-                    print("--- SetupConnection Details ---")
-                    print(f"Protocol: {setup_connection.protocol}")
-                    print(f"Version Range: {setup_connection.min_version}-{setup_connection.max_version}")
-                    print(f"Flags: {setup_connection.flags}")
-                    print(f"Endpoint: {setup_connection.endpoint_host}:{setup_connection.endpoint_port}")
-                    print(f"Vendor: {setup_connection.vendor}")
-                    print(f"Hardware Version: {setup_connection.hardware_version}")
-                    print(f"Firmware: {setup_connection.firmware}")
-                    print(f"Device ID: {setup_connection.device_id}")
-                    
-                    # Create and send SetupConnectionSuccess response
-                    print("\n--- Creating SetupConnectionSuccess Response ---")
-                    
-                    # Use the same version and flags from the received message
-                    # For used_version, we'll use the max_version from the client's range
-                    used_version = setup_connection.max_version
-                    flags = setup_connection.flags
-                    
-                    setup_success = SetupConnectionSuccess(
-                        used_version=used_version,
-                        flags=flags
-                    )
-                    
-                    # Wrap in Sv2Message enum
-                    success_message = Sv2Message.SETUP_CONNECTION_SUCCESS(setup_success)
-                    
-                    print(f"✓ Created SetupConnectionSuccess:")
-                    print(f"  - Used Version: {used_version}")
-                    print(f"  - Flags: {flags}")
-                    
-                    # Encode and send the response
-                    try:
-                        encoded_response = encoder.encode(success_message, responder)
-                        client_socket.send(encoded_response)
-                        print(f"✓ Sent SetupConnectionSuccess response: {len(encoded_response)} bytes")
-                        print(f"  Response data: {encoded_response.hex()[:64]}...")
-                        
-                    except Exception as e:
-                        print(f"✗ Failed to encode/send response: {e}")
-                    
-                else:
-                    print(f"Received other message type: {type(decoded_message).__name__}")
-                    
-            except Exception as e:
-                print(f"⚠ Failed to decode message: {e}")
-                print(f"Raw frame data: {initial_data.hex()}")
-                
     except Exception as e:
-        print(f"✗ Error handling messages: {e}")
+        print(f"✗ Error in message handling: {e}")
+        
+    finally:
+        print(f"📊 Total messages received: {message_count}")
 
 def handle_client(client_socket: socket.socket, client_address: tuple):
     """

@@ -23,7 +23,8 @@ from sv2 import (
     Sv2Message,
     SetupConnection,
     Sv2CodecError,
-    Sv2MessageError
+    Sv2MessageError,
+    SetupConnectionSuccess
 )
 
 def get_authority_public_key() -> bytes:
@@ -110,10 +111,7 @@ def create_setup_connection_message() -> Optional[Sv2Message]:
         print(f"  - Device ID: {setup_connection.device_id}")
         
         # Wrap in Sv2Message enum
-        sv2_message = Sv2Message.SETUP_CONNECTION(setup_connection)
-        print("✓ Wrapped in Sv2Message enum")
-        
-        return sv2_message
+        return Sv2Message.SETUP_CONNECTION(setup_connection)  # type: ignore
         
     except Sv2MessagesError as e:
         print(f"✗ Failed to create SetupConnection message: {e}")
@@ -125,10 +123,14 @@ def create_setup_connection_message() -> Optional[Sv2Message]:
 def send_and_receive_messages(client_socket: socket.socket, initiator: Sv2CodecState):
     """
     Send messages to the server and handle responses.
+    Uses incremental reading to handle frame boundaries properly.
     """
     encoder = Sv2Encoder()
     decoder = Sv2Decoder()
     print("\n--- Message Exchange Phase ---")
+    
+    # Buffer to accumulate incoming data
+    data_buffer = bytearray()
     
     try:
         # Create and send SetupConnection message
@@ -139,7 +141,7 @@ def send_and_receive_messages(client_socket: socket.socket, initiator: Sv2CodecS
         
         print("\n--- Encoding and Sending Message ---")
         try:
-            encoded_frame = encoder.encode(setup_message, initiator)
+            encoded_frame = encoder.encode(setup_message, initiator)  # type: ignore
             print(f"✓ Message encoded successfully: {len(encoded_frame)} bytes")
             print(f"  Encoded frame: {encoded_frame.hex()[:64]}...")
             
@@ -150,51 +152,95 @@ def send_and_receive_messages(client_socket: socket.socket, initiator: Sv2CodecS
             print(f"✗ Failed to encode/send message: {e}")
             return
         
-        # Wait for response
-        print("\n--- Waiting for Server Response ---")
-        try:
-            response_data = client_socket.recv(4096)
-            
-            if not response_data:
-                print("✗ No response received from server")
-                return
-                
-            print(f"✓ Received response: {len(response_data)} bytes")
-            print(f"  Response data: {response_data.hex()[:64]}...")
-            
-            # Decode the response
+        # Listen for responses using buffered approach
+        print("\n--- Listening for Server Responses ---")
+        message_count = 0
+        
+        while True:
             try:
-                decoded_response = decoder.decode(response_data, initiator)
-                print("✓ Response decoded successfully!")
+                print("⏳ Waiting for next data from server...")
                 
-                # Check if it's a SetupConnectionSuccess message
-                if decoded_response.is_SETUP_CONNECTION_SUCCESS():
-                    print("\n🎉 Received SetupConnectionSuccess!")
+                # Read new data from socket
+                new_data = client_socket.recv(4096)
+                
+                if not new_data:
+                    print("✗ Server closed the connection")
+                    break
+                
+                # Add new data to buffer
+                data_buffer.extend(new_data)
+                print(f"📦 Received {len(new_data)} bytes, buffer now has {len(data_buffer)} bytes")
+                
+                # Try to decode messages from the buffer
+                processed_any = True
+                while processed_any and len(data_buffer) > 0:
+                    processed_any = False
                     
-                    # Extract the response data
-                    success_response = decoded_response[0]
+                    # Try different buffer sizes to find a complete frame
+                    for try_length in range(7, len(data_buffer) + 1):  # Start from minimum reasonable frame size
+                        try:
+                            # Try to decode with first 'try_length' bytes
+                            test_decoder = Sv2Decoder()  # Use fresh decoder for each test
+                            decoded_response = test_decoder.decode(bytes(data_buffer[:try_length]), initiator)
+                            
+                            # Successfully decoded a message!
+                            message_count += 1
+                            print(f"\n--- Response #{message_count} Decoded ---")
+                            print(f"Frame length: {try_length} bytes")
+                            print(f"Message type: {type(decoded_response).__name__}")
+                            
+                            # Handle different response types
+                            if decoded_response.is_SETUP_CONNECTION_SUCCESS():
+                                print("\n🎉 Received SetupConnectionSuccess!")
+                                
+                                # Extract the response data
+                                success_response = decoded_response[0]  # type: ignore
+                                
+                                print("--- SetupConnectionSuccess Details ---")
+                                print(f"Used Version: {success_response.used_version}")
+                                print(f"Flags: {success_response.flags}")
+                                
+                                print("\n✅ Connection setup completed successfully!")
+                                print("Client-server communication established")
+                                
+                                # After successful setup, we could send more messages or exit
+                                # For this example, we'll exit after receiving the success response
+                                print("🏁 Example completed - connection established")
+                                return
+                                
+                            else:
+                                print(f"📨 Received other message type: {type(decoded_response).__name__}")
+                                # Could handle other message types here
+                            
+                            # Remove the processed frame from buffer
+                            data_buffer = data_buffer[try_length:]
+                            print(f"🔄 Consumed {try_length} bytes, {len(data_buffer)} bytes remaining in buffer")
+                            
+                            processed_any = True
+                            break  # Exit the try_length loop and try to decode next frame
+                            
+                        except Exception as decode_error:
+                            # This length doesn't work, try next length
+                            continue
                     
-                    print("--- SetupConnectionSuccess Details ---")
-                    print(f"Used Version: {success_response.used_version}")
-                    print(f"Flags: {success_response.flags}")
-                    
-                    print("\n✅ Connection setup completed successfully!")
-                    print("Client-server communication established")
-                    
-                else:
-                    print(f"Received different message type: {type(decoded_response).__name__}")
-                    
+                    # If we couldn't decode any frame, we need more data
+                    if not processed_any:
+                        print(f"⏳ Buffer contains partial frame, waiting for more data...")
+                        print(f"   Buffer size: {len(data_buffer)} bytes")
+                        break  # Exit the processing loop and read more data
+                        
+            except socket.timeout:
+                print("⚠ Timeout waiting for server response")
+                break
             except Exception as e:
-                print(f"⚠ Failed to decode response: {e}")
-                print(f"Raw response data: {response_data.hex()}")
-                
-        except socket.timeout:
-            print("⚠ Timeout waiting for server response")
-        except Exception as e:
-            print(f"✗ Error receiving response: {e}")
+                print(f"⚠ Error receiving response: {e}")
+                break
             
     except Exception as e:
         print(f"✗ Error in message exchange: {e}")
+        
+    finally:
+        print(f"📊 Total responses received: {message_count}")
 
 def connect_to_server(host: str = "127.0.0.1", port: int = 34254) -> bool:
     """
