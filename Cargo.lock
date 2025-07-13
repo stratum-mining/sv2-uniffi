@@ -139,6 +139,9 @@ name = "binary_codec_sv2"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e6d0c8000e00c0b41021fe7806b3d67a42e22d41af44e49d78c9567e93232d0"
+dependencies = [
+ "buffer_sv2",
+]
 
 [[package]]
 name = "binary_sv2"
@@ -523,6 +526,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5cd8ef3314d1eb84014e67c5a9e979f378673afabbba2005464a7b041a9d23e8"
 dependencies = [
  "binary_sv2",
+ "buffer_sv2",
  "noise_sv2",
 ]
 

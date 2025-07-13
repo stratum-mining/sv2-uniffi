@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-codec_sv2 = { version = "2.1.0", default-features = true, features = ["noise_sv2"] }
+codec_sv2 = { version = "2.1.0", default-features = true, features = ["noise_sv2", "with_buffer_pool"] }
 channels_sv2 = "0.1.0"
 parsers_sv2 = "0.1.0"
 common_messages_sv2 = "5.0.0"
