@@ -15,7 +15,7 @@ def test_import():
             Sv2Message, 
             SetupConnection,
             Sv2CodecError,
-            Sv2MessagesError
+            Sv2MessageError
         )
         print("✓ Import test passed")
         return True
