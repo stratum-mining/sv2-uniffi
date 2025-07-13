@@ -22,5 +22,5 @@ name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"
 
 [lib]
-crate-type = ["lib", "staticlib", "cdylib"]
+crate-type = ["cdylib"]
 name = "sv2"
