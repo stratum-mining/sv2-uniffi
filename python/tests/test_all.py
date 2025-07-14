@@ -34,7 +34,7 @@ def run_all_tests():
     
     # Test 4: Encoding/decoding (depends on previous tests)
     print("\n4. Encoding/Decoding Test:")
-    results.append(test_encoding_decoding(initiator, message))
+    results.append(test_encoding_decoding(initiator, responder, message))
     
     # Test 5: Error handling
     print("\n5. Error Handling Test:")

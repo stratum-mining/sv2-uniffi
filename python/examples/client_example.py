@@ -5,8 +5,8 @@ Stratum v2 Client Example
 This example demonstrates how to create a TCP client that:
 1. Connects to a Stratum v2 server
 2. Performs Noise_NX handshake as an initiator
-3. Sends Stratum v2 messages (like SetupConnection)
-4. Receives and handles responses
+3. Sends a SetupConnection message
+4. Receives and parses the response
 
 Run the server_example.py first, then run this client to see the complete flow.
 """
@@ -75,11 +75,12 @@ def perform_handshake(client_socket: socket.socket, initiator: Sv2CodecState) ->
         
         return True
         
-    except Sv2CodecError as e:
-        print(f"✗ Handshake failed with codec error: {e}")
-        return False
-    except Exception as e:
-        print(f"✗ Handshake failed with error: {e}")
+    except Exception as e:  # Catch all exceptions since Sv2CodecError might be a subclass
+        # Check if it's a codec error by checking the type name
+        if 'Sv2CodecError' in str(type(e)):
+            print(f"✗ Handshake failed with codec error: {e}")
+        else:
+            print(f"✗ Handshake failed with error: {e}")
         return False
 
 def create_setup_connection_message() -> Optional[Sv2Message]:
@@ -113,17 +114,17 @@ def create_setup_connection_message() -> Optional[Sv2Message]:
         # Wrap in Sv2Message enum
         return Sv2Message.SETUP_CONNECTION(setup_connection)  # type: ignore
         
-    except Sv2MessagesError as e:
-        print(f"✗ Failed to create SetupConnection message: {e}")
-        return None
-    except Exception as e:
-        print(f"✗ Unexpected error creating message: {e}")
+    except Exception as e:  # Catch all exceptions since Sv2MessageError might be a subclass
+        # Check if it's a message error by checking the type name
+        if 'Sv2MessageError' in str(type(e)):
+            print(f"✗ Failed to create SetupConnection message: {e}")
+        else:
+            print(f"✗ Failed to create SetupConnection message: {e}")
         return None
 
 def send_and_receive_messages(client_socket: socket.socket, initiator: Sv2CodecState):
     """
-    Send messages to the server and handle responses.
-    Uses incremental reading to handle frame boundaries properly.
+    Send a SetupConnection message to the server and handle the response.
     """
     encoder = Sv2Encoder()
     decoder = Sv2Decoder()
@@ -152,88 +153,94 @@ def send_and_receive_messages(client_socket: socket.socket, initiator: Sv2CodecS
             print(f"✗ Failed to encode/send message: {e}")
             return
         
-        # Listen for responses using buffered approach
         print("\n--- Listening for Server Responses ---")
         message_count = 0
         
         while True:
             try:
-                print("⏳ Waiting for next data from server...")
+                # Get the size of buffer that needs to be filled
+                buffer_size = decoder.buffer_size()
                 
-                # Read new data from socket
-                new_data = client_socket.recv(4096)
-                
-                if not new_data:
-                    print("✗ Server closed the connection")
-                    break
-                
-                # Add new data to buffer
-                data_buffer.extend(new_data)
-                print(f"📦 Received {len(new_data)} bytes, buffer now has {len(data_buffer)} bytes")
-                
-                # Try to decode messages from the buffer
-                processed_any = True
-                while processed_any and len(data_buffer) > 0:
-                    processed_any = False
+                if buffer_size > 0:
+                    # Read exactly the number of bytes the decoder needs
+                    data = client_socket.recv(buffer_size)
                     
-                    # Try different buffer sizes to find a complete frame
-                    for try_length in range(7, len(data_buffer) + 1):  # Start from minimum reasonable frame size
-                        try:
-                            # Try to decode with first 'try_length' bytes
-                            test_decoder = Sv2Decoder()  # Use fresh decoder for each test
-                            decoded_response = test_decoder.decode(bytes(data_buffer[:try_length]), initiator)
-                            
-                            # Successfully decoded a message!
-                            message_count += 1
-                            print(f"\n--- Response #{message_count} Decoded ---")
-                            print(f"Frame length: {try_length} bytes")
-                            print(f"Message type: {type(decoded_response).__name__}")
-                            
-                            # Handle different response types
-                            if decoded_response.is_SETUP_CONNECTION_SUCCESS():
-                                print("\n🎉 Received SetupConnectionSuccess!")
-                                
-                                # Extract the response data
-                                success_response = decoded_response[0]  # type: ignore
-                                
-                                print("--- SetupConnectionSuccess Details ---")
-                                print(f"Used Version: {success_response.used_version}")
-                                print(f"Flags: {success_response.flags}")
-                                
-                                print("\n✅ Connection setup completed successfully!")
-                                print("Client-server communication established")
-                                
-                                # After successful setup, we could send more messages or exit
-                                # For this example, we'll exit after receiving the success response
-                                print("🏁 Example completed - connection established")
+                    if not data:
+                        print("✗ Server closed the connection")
+                        break
+
+                    if len(data) != buffer_size:
+                        # For TCP, we might get partial data, so we need to keep reading
+                        while len(data) < buffer_size:
+                            more_data = client_socket.recv(buffer_size - len(data))
+                            if not more_data:
+                                print("✗ Server closed connection while reading")
                                 return
-                                
-                            else:
-                                print(f"📨 Received other message type: {type(decoded_response).__name__}")
-                                # Could handle other message types here
+                            data += more_data
+
+                    # Try to decode with the exact amount of data
+                    try:
+                        decoded_response = decoder.try_decode(data, initiator)
+
+                        # Successfully decoded a message!
+                        message_count += 1
+                        print(f"\n--- Response #{message_count} Decoded ---")
+
+                        # Handle different response types
+                        if decoded_response.is_SETUP_CONNECTION_SUCCESS():
+                            print("\n🎉 Received SetupConnectionSuccess!")
                             
-                            # Remove the processed frame from buffer
-                            data_buffer = data_buffer[try_length:]
-                            print(f"🔄 Consumed {try_length} bytes, {len(data_buffer)} bytes remaining in buffer")
+                            # Extract the response data
+                            success_response = decoded_response[0]  # type: ignore
                             
-                            processed_any = True
-                            break  # Exit the try_length loop and try to decode next frame
+                            print("--- SetupConnectionSuccess Details ---")
+                            print(f"Used Version: {success_response.used_version}")
+                            print(f"Flags: {success_response.flags}")
                             
-                        except Exception as decode_error:
-                            # This length doesn't work, try next length
-                            continue
-                    
-                    # If we couldn't decode any frame, we need more data
-                    if not processed_any:
-                        print(f"⏳ Buffer contains partial frame, waiting for more data...")
-                        print(f"   Buffer size: {len(data_buffer)} bytes")
-                        break  # Exit the processing loop and read more data
+                            print("\n✅ Connection setup completed successfully!")
+                            print("Client-server communication established")
+                            
+                            # After successful setup, we could send more messages or exit
+                            # For this example, we'll exit after receiving the success response
+                            print("🏁 Example completed - connection established")
+                            return
+                            
+                        else:
+                            print(f"📨 Received message type: {type(decoded_response).__name__}")
+                            
+                    except Exception as e:
+                        # Check if it's a MissingBytes error
+                        error_type = type(e).__name__
                         
-            except socket.timeout:
-                print("⚠ Timeout waiting for server response")
-                break
+                        # Handle MissingBytes error
+                        if "MissingBytes" in error_type:
+                            # Decoder needs more data, will check buffer_size again
+                            continue
+                        else:
+                            print(f"✗ Unexpected decoding error: {e}")
+                            break
+                else:
+                    # If buffer_size is 0, try calling try_decode with empty data to trigger buffer_size calculation
+                    try:
+                        decoded_response = decoder.try_decode(bytes(), initiator)
+                        # If this succeeds, we have a message (shouldn't happen on first call)
+                        message_count += 1
+                        print(f"\n--- Response #{message_count} Decoded (unexpected) ---")
+                        # Handle the message as above...
+                    except Exception as e:
+                        # Check if it's a MissingBytes error
+                        error_type = type(e).__name__
+                        
+                        # Handle MissingBytes error
+                        if "MissingBytes" in error_type:
+                            # Decoder updated buffer size, will check buffer_size again
+                            continue
+                        else:
+                            print(f"✗ Unexpected error on initial decode: {e}")
+                            break
+                        
             except Exception as e:
-                print(f"⚠ Error receiving response: {e}")
+                print(f"⚠ Error in response handling: {e}")
                 break
             
     except Exception as e:

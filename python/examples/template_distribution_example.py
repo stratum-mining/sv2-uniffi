@@ -227,12 +227,10 @@ def create_coinbase_output_constraints_message():
         print(f"✗ Failed to create CoinbaseOutputConstraints message: {e}")
         return None
 
-def send_setup_connection_and_coinbase_output_constraints_messages(client_socket: socket.socket, initiator: Sv2CodecState):
+def send_setup_connection_and_coinbase_output_constraints_messages(client_socket: socket.socket, initiator: Sv2CodecState, encoder: Sv2Encoder, decoder: Sv2Decoder):
     """
     Send SetupConnection message first, then CoinbaseOutputConstraints message.
     """
-    encoder = Sv2Encoder()
-    decoder = Sv2Decoder()
     print("\n--- Message Exchange Phase ---")
     
     try:
@@ -264,28 +262,76 @@ def send_setup_connection_and_coinbase_output_constraints_messages(client_socket
         # Wait for SetupConnectionSuccess response
         print("\n--- Waiting for SetupConnectionSuccess Response ---")
         try:
-            response_data = client_socket.recv(4096)
-            if response_data:
-                print(f"✓ Received response: {len(response_data)} bytes")
-                print(f"  Raw response: {response_data.hex()}")
+            while True:
+                # Get the size of buffer that needs to be filled
+                buffer_size = decoder.buffer_size()
                 
-                # Try to decode the response
-                decoded_response = decoder.decode(response_data, initiator)
-                if decoded_response.is_setup_connection_success():
-                    print("✓ Received SetupConnectionSuccess!")
+                if buffer_size > 0:
+                    # Read exactly the number of bytes the decoder needs
+                    response_data = client_socket.recv(buffer_size)
                     
+                    if not response_data:
+                        print("⚠ No response received for SetupConnection")
+                        return
+                    
+                    if len(response_data) != buffer_size:
+                        # For TCP, we might get partial data, so we need to keep reading
+                        while len(response_data) < buffer_size:
+                            more_data = client_socket.recv(buffer_size - len(response_data))
+                            if not more_data:
+                                print("⚠ Connection closed while reading response")
+                                return
+                            response_data += more_data
+                    
+                    print(f"✓ Received response: {len(response_data)} bytes")
+                    print(f"  Raw response: {response_data.hex()}")
+                    
+                    # Try to decode the response
+                    try:
+                        decoded_response = decoder.try_decode(response_data, initiator)
+                        if decoded_response.is_setup_connection_success():
+                            print("✓ Received SetupConnectionSuccess!")
+                            break
+                        else:
+                            print(f"⚠ Received unexpected response: {type(decoded_response).__name__}")
+                            print(f"  Response details: {decoded_response}")
+                            # Don't continue if we didn't get the expected response
+                            return
+                        
+                    except Exception as e:
+                        # Check if it's a MissingBytes error
+                        error_type = type(e).__name__
+                        
+                        # Handle MissingBytes error
+                        if "MissingBytes" in error_type:
+                            # Decoder needs more data, will check buffer_size again
+                            continue
+                        else:
+                            print(f"⚠ Error decoding response: {e}")
+                            print(f"  Raw response data: {response_data.hex()}")
+                            return
+                            
                 else:
-                    print(f"⚠ Received unexpected response: {type(decoded_response).__name__}")
-                    print(f"  Response details: {decoded_response}")
-                    # Don't continue if we didn't get the expected response
-                    return
-            else:
-                print("⚠ No response received for SetupConnection")
-                return
+                    # If buffer_size is 0, try calling try_decode with empty data to trigger buffer_size calculation
+                    try:
+                        decoded_response = decoder.try_decode(bytes(), initiator)
+                        # If this succeeds, we have a message (shouldn't happen on first call)
+                        print("✓ Received response (unexpected initial success)")
+                        break
+                    except Exception as e:
+                        # Check if it's a MissingBytes error
+                        error_type = type(e).__name__
+                        
+                        # Handle MissingBytes error
+                        if "MissingBytes" in error_type:
+                            # Decoder updated buffer size, will check buffer_size again
+                            continue
+                        else:
+                            print(f"⚠ Error on initial decode: {e}")
+                            return
                 
         except Exception as e:
             print(f"⚠ Error receiving SetupConnection response: {e}")
-            print(f"  Raw response data: {response_data.hex() if 'response_data' in locals() else 'No data'}")
             return
         
         # Step 2: Create and send CoinbaseOutputConstraints message
@@ -317,12 +363,10 @@ def send_setup_connection_and_coinbase_output_constraints_messages(client_socket
     except Exception as e:
         print(f"✗ Error in message exchange: {e}")
 
-def listen_for_messages(client_socket: socket.socket, initiator: Sv2CodecState):
+def listen_for_messages(client_socket: socket.socket, initiator: Sv2CodecState, decoder: Sv2Decoder):
     """
     Continuously listen for incoming messages and print them to terminal.
-    Uses incremental reading to handle frame boundaries properly.
     """
-    decoder = Sv2Decoder()
     print("\n--- Listening for Incoming Messages ---")
     print("Blocking and waiting for messages from server... (Press Ctrl+C to stop)")
     
@@ -334,92 +378,108 @@ def listen_for_messages(client_socket: socket.socket, initiator: Sv2CodecState):
     print(f"  - Timeout: {client_socket.gettimeout()} (None = blocking)")
     print(f"  - Socket connected: {client_socket.fileno() != -1}")
     
-    # Buffer to accumulate incoming data
-    data_buffer = bytearray()
-    
     try:
         message_count = 0
         
         print("\n🔄 Entering message listening loop...")
         while True:
             try:
-                print("⏳ Waiting for next data from server...")
+                # Get the size of buffer that needs to be filled
+                buffer_size = decoder.buffer_size()
                 
-                new_data = client_socket.recv(4096)
-                
-                if not new_data:
-                    # Empty data means connection was closed cleanly by server
-                    print("✗ Server closed the connection (received empty data)")
-                    print("  This might be normal behavior after sending CoinbaseOutputConstraints")
-                    print("  Or the server might expect a different message sequence")
-                    break
-                
-                # Add new data to buffer
-                data_buffer.extend(new_data)
-                print(f"📦 Received {len(new_data)} bytes, buffer now has {len(data_buffer)} bytes")
-                
-                # Try to decode messages from the buffer
-                processed_any = True
-                while processed_any and len(data_buffer) > 0:
-                    processed_any = False
+                if buffer_size > 0:
                     
-                    # Try different buffer sizes to find a complete frame
-                    for try_length in range(7, len(data_buffer) + 1):  # Start from minimum reasonable frame size
-                        try:
-                            # Try to decode with first 'try_length' bytes
-                            test_decoder = Sv2Decoder()  # Use fresh decoder for each test
-                            decoded_message = test_decoder.decode(bytes(data_buffer[:try_length]), initiator)
+                    # Read exactly the number of bytes the decoder needs
+                    data = client_socket.recv(buffer_size)
+                    
+                    if not data:
+                        print("✗ Server closed the connection (received empty data)")
+                        print("  This might be normal behavior after sending CoinbaseOutputConstraints")
+                        break
+                    
+                    if len(data) != buffer_size:
+                        print(f"⚠ Expected {buffer_size} bytes, got {len(data)} bytes")
+                        # For TCP, we might get partial data, so we need to keep reading
+                        while len(data) < buffer_size:
+                            more_data = client_socket.recv(buffer_size - len(data))
+                            if not more_data:
+                                print("✗ Server closed connection while reading")
+                                return
+                            data += more_data
+                    
+                    # Try to decode with the exact amount of data
+                    try:
+                        decoded_message = decoder.try_decode(data, initiator)
+                        
+                        # Successfully decoded a message!
+                        message_count += 1
+                        print(f"\n--- Message #{message_count} Decoded ---")
+                        print(f"Frame length: {len(data)} bytes")
+                        print(f"Message type: {type(decoded_message).__name__}")
+                        
+                        # Print message details
+                        if decoded_message.is_NEW_TEMPLATE():
+                            print("📄 NEW_TEMPLATE message received")
+                            # Access message data properly from the enum variant
+                            template_data = decoded_message[0]  # type: ignore
+                            print(f"  - Template ID: {template_data.template_id}")
+                            print(f"  - Future template: {template_data.future_template}")
+                            print(f"  - Version: {template_data.version}")
+                            print(f"  - Coinbase value remaining: {template_data.coinbase_tx_value_remaining}")
+                            print(f"  - Merkle path nodes: {len(template_data.merkle_path)}")
+                            for i, path_node in enumerate(template_data.merkle_path):
+                                print(f"    [{i}]: {path_node[::-1].hex()}")
                             
-                            # Successfully decoded a message!
-                            message_count += 1
-                            print(f"\n--- Message #{message_count} Decoded ---")
-                            print(f"Frame length: {try_length} bytes")
-                            print(f"Message type: {type(decoded_message).__name__}")
-                            
-                            # Print message details
-                            if decoded_message.is_NEW_TEMPLATE():
-                                print("📄 NEW_TEMPLATE message received")
-                                # Access message data properly from the enum variant
-                                template_data = decoded_message[0]  # type: ignore
-                                print(f"  - Template ID: {template_data.template_id}")
-                                print(f"  - Future template: {template_data.future_template}")
-                                print(f"  - Version: {template_data.version}")
-                                print(f"  - Coinbase value remaining: {template_data.coinbase_tx_value_remaining}")
-                                print(f"  - Merkle path nodes: {len(template_data.merkle_path)}")
-                                for i, path_node in enumerate(template_data.merkle_path):
-                                    print(f"    [{i}]: {path_node[::-1].hex()}")
-                                
-                            elif decoded_message.is_SET_NEW_PREV_HASH_TEMPLATE_DISTRIBUTION():
-                                print("🔗 SET_NEW_PREV_HASH_TEMPLATE_DISTRIBUTION message received")
-                                # Access message data properly from the enum variant
-                                prev_hash_data = decoded_message[0]  # type: ignore
-                                print(f"  - Template ID: {prev_hash_data.template_id}")
-                                print(f"  - PrevHash: {prev_hash_data.prev_hash[::-1].hex()}")
-                                print(f"  - Header timestamp: {prev_hash_data.header_timestamp}")
-                            
-                            else:
-                                print(f"📨 Other message type: {type(decoded_message).__name__}")
-                                # For other message types, we just print the type
-                            
-                            # Remove the processed frame from buffer
-                            data_buffer = data_buffer[try_length:]
-                            print(f"🔄 Consumed {try_length} bytes, {len(data_buffer)} bytes remaining in buffer")
-                            
-                            processed_any = True
-                            break  # Exit the try_length loop and try to decode next frame
-                            
-                        except Exception as decode_error:
-                            # This length doesn't work, try next length
+                        elif decoded_message.is_SET_NEW_PREV_HASH_TEMPLATE_DISTRIBUTION():
+                            print("🔗 SET_NEW_PREV_HASH_TEMPLATE_DISTRIBUTION message received")
+                            # Access message data properly from the enum variant
+                            prev_hash_data = decoded_message[0]  # type: ignore
+                            print(f"  - Template ID: {prev_hash_data.template_id}")
+                            print(f"  - PrevHash: {prev_hash_data.prev_hash[::-1].hex()}")
+                            print(f"  - Header timestamp: {prev_hash_data.header_timestamp}")
+                        
+                        else:
+                            print(f"📨 Other message type: {type(decoded_message).__name__}")
+                            # For other message types, we just print the type
+                        
+                        # Continue to next message
+                        continue
+                        
+                    except Exception as e:
+                        # Check if it's a MissingBytes error
+                        error_type = type(e).__name__
+                        
+                        # Handle MissingBytes error
+                        if "MissingBytes" in error_type:
+                            # Decoder updated buffer size, will check buffer_size again
                             continue
-                    
-                    # If we couldn't decode any frame, we need more data
-                    if not processed_any:
-                        print(f"⏳ Buffer contains partial frame, waiting for more data...")
-                        print(f"   Buffer size: {len(data_buffer)} bytes")
-                        break  # Exit the processing loop and read more data
+                        else:
+                            print(f"✗ Unexpected decoding error: {e}")
+                            break
+                            
+                else:
+                    # If buffer_size is 0, try calling try_decode with empty data to trigger initial calculation
+                    try:
+                        decoded_message = decoder.try_decode(bytes(), initiator)
+                        # If this succeeds, we have a message (shouldn't happen on first call)
+                        message_count += 1
+                        print(f"\n--- Message #{message_count} Decoded (unexpected) ---")
+                        print(f"Message type: {type(decoded_message).__name__}")
+                        continue
+                    except Exception as e:
+                        # Check if it's a MissingBytes error
+                        error_type = type(e).__name__
+                        
+                        # Handle MissingBytes error
+                        if "MissingBytes" in error_type:
+                            # Decoder updated buffer size, will check buffer_size again
+                            continue
+                        else:
+                            print(f"✗ Unexpected error on initial decode: {e}")
+                            break
                         
             except Exception as e:
-                print(f"⚠ Error receiving message: {e}")
+                print(f"⚠ Error in message loop: {e}")
                 break
                 
     except KeyboardInterrupt:
@@ -461,13 +521,18 @@ def connect_to_server(host: str = "127.0.0.1", port: int = 8442) -> bool:
         initiator = Sv2CodecState.new_initiator(authority_pub_key)
         print("✓ Initiator created successfully")
         
+        # Create single encoder/decoder pair for the entire session
+        encoder = Sv2Encoder()
+        decoder = Sv2Decoder()
+        print("✓ Encoder and decoder created successfully")
+        
         # Perform handshake
         if perform_handshake(client_socket, initiator):
             # Send SetupConnection and CoinbaseOutputConstraints messages after successful handshake
-            send_setup_connection_and_coinbase_output_constraints_messages(client_socket, initiator)
+            send_setup_connection_and_coinbase_output_constraints_messages(client_socket, initiator, encoder, decoder)
             
-            # Start listening for messages from server
-            listen_for_messages(client_socket, initiator)
+            # Start listening for messages from server using the same decoder
+            listen_for_messages(client_socket, initiator, decoder)
         else:
             print("✗ Handshake failed, closing connection")
             return False

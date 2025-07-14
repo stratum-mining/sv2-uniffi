@@ -16,6 +16,8 @@ pub enum Sv2CodecError {
     FailedToDecodeFrame,
     FailedToGetFrameHeader,
     Sv2MessagesError(Sv2MessageError),
+    MissingBytes,
+    InvalidDataSize { expected: u32, actual: u32 },
 }
 
 impl Display for Sv2CodecError {

@@ -14,92 +14,116 @@ use crate::{
 #[derive(uniffi::Object)]
 pub struct Sv2Decoder {
     inner: Mutex<InnerNoiseDecoder<InnerAnyMessage<'static>>>,
+    buffer_size: Mutex<u32>,
 }
 
 #[uniffi::export]
 impl Sv2Decoder {
     #[uniffi::constructor]
     pub fn new() -> Self {
+        let mut inner_decoder = InnerNoiseDecoder::new();
+        let initial_writable_size = inner_decoder.writable().len() as u32;
+
         Self {
-            inner: Mutex::new(InnerNoiseDecoder::new()),
+            inner: Mutex::new(inner_decoder),
+            buffer_size: Mutex::new(initial_writable_size),
         }
     }
 
-    /// decodes a byte array into a `Sv2Message`
+    /// Returns the size of the buffer that needs to be filled with data from TCP stream
+    pub fn buffer_size(&self) -> Result<u32, Sv2CodecError> {
+        let buffer_size = self
+            .buffer_size
+            .lock()
+            .map_err(|_| Sv2CodecError::LockError)?;
+        Ok(*buffer_size)
+    }
+
+    /// Attempts to decode the next frame after data has been written to the decoder
     ///
-    /// we assume the byte array contains an encrypted Sv2 frame, otherwise it will return an error
+    /// This should be called after reading exactly `buffer_size()` bytes from the TCP stream
+    /// and passing that data to this method.
     ///
-    /// codec_state must be generated from the handshake process.
-    pub fn decode(
+    /// Returns:
+    /// - `Ok(message)` if a complete frame was decoded
+    /// - `Err(MissingBytes)` if more bytes are needed (call `buffer_size()` to see how many)
+    /// - `Err(other)` for other decoding errors
+    pub fn try_decode(
         &self,
-        frame: Vec<u8>,
+        data: Vec<u8>,
         state: Arc<Sv2CodecState>,
     ) -> Result<Sv2Message, Sv2CodecError> {
         let mut inner_decoder = self.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
+        let mut buffer_size = self
+            .buffer_size
+            .lock()
+            .map_err(|_| Sv2CodecError::LockError)?;
 
         let mut inner_state = {
             let state_guard = state.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
             state_guard.clone()
         };
 
-        // Write the entire frame to the decoder buffer
-        let mut frame_offset = 0;
-
-        loop {
-            // Get the writable buffer from the decoder
+        // Write the data to the decoder buffer
+        if !data.is_empty() {
             let decoder_buf = inner_decoder.writable();
-            let decoder_buf_size = decoder_buf.len();
-
-            // Check if we have more data to write
-            if frame_offset < frame.len() {
-                // Calculate how much data to write (minimum of remaining frame data or buffer size)
-                let bytes_to_write = std::cmp::min(decoder_buf_size, frame.len() - frame_offset);
-
-                // Write the data to the decoder buffer
-                decoder_buf[..bytes_to_write]
-                    .copy_from_slice(&frame[frame_offset..frame_offset + bytes_to_write]);
-                frame_offset += bytes_to_write;
+            if decoder_buf.len() != data.len() {
+                return Err(Sv2CodecError::InvalidDataSize {
+                    expected: decoder_buf.len() as u32,
+                    actual: data.len() as u32,
+                });
             }
+            decoder_buf.copy_from_slice(&data);
+        }
 
-            // Try to decode the frame
-            match inner_decoder.next_frame(&mut inner_state) {
-                Ok(decoded_frame) => {
-                    // Successfully decoded - convert to StandardSv2Frame
-                    let mut sv2_frame: StandardSv2Frame<InnerAnyMessage<'static>> = decoded_frame
+        // Try to decode the frame
+        match inner_decoder.next_frame(&mut inner_state) {
+            Ok(decoded_frame) => {
+                // Successfully decoded - convert to StandardSv2Frame
+                let mut sv2_frame: StandardSv2Frame<InnerAnyMessage<'static>> = decoded_frame
+                    .try_into()
+                    .map_err(|_| Sv2CodecError::FailedToDecodeFrame)?;
+
+                let sv2_frame_header = sv2_frame
+                    .get_header()
+                    .ok_or(Sv2CodecError::FailedToGetFrameHeader)?;
+                let sv2_message_type = sv2_frame_header.msg_type();
+                let mut sv2_message_payload = sv2_frame.payload().to_vec();
+
+                let sv2_message: InnerAnyMessage =
+                    (sv2_message_type, sv2_message_payload.as_mut_slice())
                         .try_into()
                         .map_err(|_| Sv2CodecError::FailedToDecodeFrame)?;
+                let sv2_message: InnerAnyMessage<'static> = sv2_message.into_static();
 
-                    let sv2_frame_header = sv2_frame
-                        .get_header()
-                        .ok_or(Sv2CodecError::FailedToGetFrameHeader)?;
-                    let sv2_message_type = sv2_frame_header.msg_type();
-                    let mut sv2_message_payload = sv2_frame.payload().to_vec(); // Clone the payload to avoid borrowing issues
-
-                    let sv2_message: InnerAnyMessage =
-                        (sv2_message_type, sv2_message_payload.as_mut_slice())
-                            .try_into()
-                            .map_err(|_| Sv2CodecError::FailedToDecodeFrame)?;
-                    let sv2_message: InnerAnyMessage<'static> = sv2_message.into_static();
-
-                    // Update the original state with changes
-                    {
-                        let mut state_guard =
-                            state.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
-                        *state_guard = inner_state;
-                    }
-
-                    return Ok(inner_to_sv2_message(&sv2_message));
+                // Update the original state with changes
+                {
+                    let mut state_guard =
+                        state.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
+                    *state_guard = inner_state;
                 }
-                Err(codec_sv2::Error::MissingBytes(_)) => {
-                    // Need more data - continue the loop if we have more data to write
-                    if frame_offset >= frame.len() {
-                        return Err(Sv2CodecError::FailedToDecodeFrame);
-                    }
-                    // Continue the loop to write more data
+
+                // After successful decode, reset to initial state for next frame
+                *buffer_size = 0;
+
+                Ok(inner_to_sv2_message(&sv2_message))
+            }
+            Err(codec_sv2::Error::MissingBytes(bytes_needed)) => {
+                // Update the original state with changes
+                {
+                    let mut state_guard =
+                        state.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
+                    *state_guard = inner_state;
                 }
-                Err(_) => {
-                    return Err(Sv2CodecError::FailedToDecodeFrame);
-                }
+
+                // Update the buffer size for next read
+                *buffer_size = bytes_needed as u32;
+
+                Err(Sv2CodecError::MissingBytes)
+            }
+            Err(e) => {
+                eprintln!("Failed to decode frame: {:?}", e);
+                Err(Sv2CodecError::FailedToDecodeFrame)
             }
         }
     }
