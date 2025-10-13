@@ -101,6 +101,14 @@ impl Sv2ExtendedJob {
             .collect();
         Ok(outputs)
     }
+
+    pub fn is_future(&self) -> Result<bool, Sv2ExtendedJobError> {
+        let inner = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ExtendedJobError::LockError)?;
+        Ok(inner.get_min_ntime().into_inner().is_none())
+    }
 }
 
 #[derive(uniffi::Enum)]

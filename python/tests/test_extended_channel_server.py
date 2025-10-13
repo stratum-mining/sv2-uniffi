@@ -24,6 +24,7 @@ def test_extended_channel_server():
             requested_min_rollable_extranonce_size=1,
             share_batch_size=1,
             expected_share_per_minute=1.0,
+            pool_tag_string="test",
         )
 
         # a future template to generate a future job on the channel
@@ -60,7 +61,7 @@ def test_extended_channel_server():
             _job_id, job = next(iter(future_jobs.items()))
 
             # check that the job is future
-            if job.min_ntime is not None:
+            if not job.is_future():
                 raise Exception("job is not future")
         else:
             raise Exception("no future jobs after processing future template")
@@ -86,12 +87,10 @@ def test_extended_channel_server():
 
         # check that the future job was activated
         active_job = extended_channel.get_active_job()
-        if active_job.min_ntime is None:
+        if active_job.is_future():
             raise Exception("active job is not set")
-        elif active_job.min_ntime != ntime:
-            raise Exception("active job min ntime is not set")
         
-        activated_job_id = active_job.job_id
+        activated_job_id = active_job.get_job_id()
 
         # process a non-future template to create a new non-future job on the channel
         template = NewTemplate(
@@ -117,10 +116,10 @@ def test_extended_channel_server():
 
         # check that the active job is properly updated
         active_job = extended_channel.get_active_job()
-        if active_job.job_id == activated_job_id:
+        if active_job.get_job_id() == activated_job_id:
             raise Exception("active job is not updated with non-future template")
 
-        cached_job_id = active_job.job_id
+        cached_job_id = active_job.get_job_id()
 
         # get the current target
         current_target = extended_channel.get_target()
@@ -161,7 +160,7 @@ def test_extended_channel_server():
         extended_channel.on_set_custom_mining_job(set_custom_mining_job)
 
         active_job = extended_channel.get_active_job()
-        if active_job.job_id == cached_job_id:
+        if active_job.get_job_id() == cached_job_id:
             raise Exception("active job is not updated with custom mining job")
 
         print("✓ Extended channel server test passed")

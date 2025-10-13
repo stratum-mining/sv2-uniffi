@@ -84,4 +84,12 @@ impl Sv2StandardJob {
             .collect();
         Ok(outputs)
     }
+
+    pub fn is_future(&self) -> Result<bool, Sv2StandardJobError> {
+        let inner = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2StandardJobError::LockError)?;
+        Ok(inner.is_future())
+    }
 }
