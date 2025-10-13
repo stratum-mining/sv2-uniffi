@@ -740,11 +740,11 @@ pub fn sv2_message_to_inner(
                     .try_into()
                     .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
                 version: declare_mining_job.version,
-                coinbase_prefix: declare_mining_job
+                coinbase_tx_prefix: declare_mining_job
                     .coinbase_tx_prefix
                     .try_into()
                     .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
-                coinbase_suffix: declare_mining_job
+                coinbase_tx_suffix: declare_mining_job
                     .coinbase_tx_suffix
                     .try_into()
                     .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
@@ -1350,11 +1350,11 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                     .to_vec(),
                 version: inner_declare_mining_job.version,
                 coinbase_tx_prefix: inner_declare_mining_job
-                    .coinbase_prefix
+                    .coinbase_tx_prefix
                     .inner_as_ref()
                     .to_vec(),
                 coinbase_tx_suffix: inner_declare_mining_job
-                    .coinbase_suffix
+                    .coinbase_tx_suffix
                     .inner_as_ref()
                     .to_vec(),
                 tx_ids_list,
