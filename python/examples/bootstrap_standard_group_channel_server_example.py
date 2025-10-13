@@ -77,14 +77,14 @@ class MiningServerContext:
         pool_tag_string: str,
         pool_payout_script_pubkey: bytes,
     ):
-        # imagine we want to allow Extended Channels to roll 8 bytes out of the 32
-        # so 24 bytes are used to generate unique Extranonce Prefixes
+        # imagine we want to use 12 bytes to generate unique Extranonce Prefixes for Extended Channels
+        # and allow 8 bytes to be rolled during mining
         # (this is not really used on this example, but it's good to have it)
         self.extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(
-            allocation_size=24, static_prefix=static_prefix
+            allocation_size=12, rollable_size=8, static_prefix=static_prefix
         )
-        # Standard Channels use 32 bytes for Extranonce Prefix
-        # there's no extranonce rolling, and the Merkle Root is fixed
+
+        # a factory to generate unique Extranonce Prefixes for Standard Channels
         self.extranonce_prefix_factory_standard = Sv2ExtranoncePrefixFactoryStandard(
             static_prefix=static_prefix
         )

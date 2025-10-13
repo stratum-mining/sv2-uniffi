@@ -31,9 +31,9 @@ class MiningServer:
     # static_prefix is a bytes array that is used to guarantee unique search space allocation across different Mining Servers
     # it is recommended to use a different static_prefix for each Mining Server
     def __init__(self, static_prefix: bytes):
-        # imagine we want to allow Extended Channels to roll 8 bytes out of the 32
-        # so 24 bytes are used to generate unique Extranonce Prefixes
-        self.extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(allocation_size=24, static_prefix=static_prefix)
+        # imagine we want to use 12 bytes to generate unique Extranonce Prefixes for Extended Channels
+        # and allow 8 bytes to be rolled during mining
+        self.extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(allocation_size=12, rollable_size=8, static_prefix=static_prefix)
         # Standard Channels use 32 bytes for Extranonce Prefix
         # there's no extranonce rolling, and the Merkle Root is fixed
         self.extranonce_prefix_factory_standard = Sv2ExtranoncePrefixFactoryStandard(static_prefix=static_prefix)
