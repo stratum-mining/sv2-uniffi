@@ -130,18 +130,26 @@ checksum = "d965446196e3b7decd44aa7ee49e31d630118f90ef12f97900f262eb915c951d"
 
 [[package]]
 name = "binary_codec_sv2"
-version = "2.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ad24342e0abdcc463ad6ad4ac7b0ec606122c11eddf92de186a657df0114eb7"
+
+[[package]]
+name = "binary_codec_sv2"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d16415a0a9ccee2f71820da352c1f2a7f16d9f8e3ae6fb5e97834c6d732e98cd"
 dependencies = [
  "buffer_sv2",
 ]
 
 [[package]]
 name = "binary_sv2"
-version = "3.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba8295945d51b707f3a49e17810dddef858549e2b52383c7f2c4dd036f6bc1e6"
 dependencies = [
- "binary_codec_sv2",
+ "binary_codec_sv2 3.0.0",
  "derive_codec_sv2",
 ]
 
@@ -230,7 +238,8 @@ dependencies = [
 [[package]]
 name = "buffer_sv2"
 version = "2.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19781425841d2e217eb7ded68089b693b47c8f756eb02231c92122dbf505bcf0"
 dependencies = [
  "aes-gcm",
 ]
@@ -326,8 +335,9 @@ dependencies = [
 
 [[package]]
 name = "channels_sv2"
-version = "1.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11ac02b93b5bd92a7dda2bc4b8c9d1f087e1fffc8b1018b532109135629051fc"
 dependencies = [
  "binary_sv2",
  "bitcoin",
@@ -391,8 +401,9 @@ checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 
 [[package]]
 name = "codec_sv2"
-version = "2.1.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01e6d43e79e66d0f98038922157db8b6101594921be87ac2cca3754d669f2a05"
 dependencies = [
  "binary_sv2",
  "buffer_sv2",
@@ -404,8 +415,9 @@ dependencies = [
 
 [[package]]
 name = "common_messages_sv2"
-version = "5.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "6.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e6ec6ab527aeebf8ead273d6ab712ff181c050ee5e1082f3f6a2c65c0a10bf6"
 dependencies = [
  "binary_sv2",
 ]
@@ -467,9 +479,10 @@ dependencies = [
 [[package]]
 name = "derive_codec_sv2"
 version = "1.1.1"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "924f288d967a5cd37956b195269ee7f710999169895cf670a736e1b2267d6137"
 dependencies = [
- "binary_codec_sv2",
+ "binary_codec_sv2 1.2.0",
 ]
 
 [[package]]
@@ -508,8 +521,9 @@ dependencies = [
 
 [[package]]
 name = "framing_sv2"
-version = "5.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc6543955264144174b93780e0e76623ee4293037c9e180cfde3e2c155b59fa9"
 dependencies = [
  "binary_sv2",
  "buffer_sv2",
@@ -677,8 +691,9 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "job_declaration_sv2"
-version = "4.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8d4edc436d29e8dcac178539222de2b3681d629f9884191bd7db8831e49dd24"
 dependencies = [
  "binary_sv2",
 ]
@@ -715,8 +730,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "mining_sv2"
-version = "5.0.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1eb3c055232f64d36e3eee4296adcaa584fb3185a57e0de11ad5807766c45edc"
 dependencies = [
  "binary_sv2",
 ]
@@ -724,7 +740,8 @@ dependencies = [
 [[package]]
 name = "noise_sv2"
 version = "1.4.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30964f9fbc4572bb5a1b0046176331d20e9ce6de0ca18afc3cfd42c6e91a94aa"
 dependencies = [
  "aes-gcm",
  "chacha20poly1305",
@@ -785,8 +802,9 @@ dependencies = [
 
 [[package]]
 name = "parsers_sv2"
-version = "0.1.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "109e80bc77241a729f61cad15f3f246f3de12e1b741b31e419fc7e02f20c2ccb"
 dependencies = [
  "binary_sv2",
  "common_messages_sv2",
@@ -1146,8 +1164,9 @@ dependencies = [
 
 [[package]]
 name = "template_distribution_sv2"
-version = "3.1.0"
-source = "git+https://github.com/plebhash/stratum?branch=2025-08-06-update-standard-channel-with-extended-job#620784fc611753498ff7519080b9c789e022edf5"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6298fc9f339b1c3b654ef3590857d5d3eff6d709891f003b7f7a701b8a64a3a4"
 dependencies = [
  "binary_sv2",
 ]
