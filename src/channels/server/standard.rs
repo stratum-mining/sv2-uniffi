@@ -3,7 +3,10 @@ use channels_sv2::server::share_accounting::{
     ShareValidationError as InnerShareValidationError,
     ShareValidationResult as InnerShareValidationResult,
 };
-use channels_sv2::server::{jobs::job_store::DefaultJobStore, standard::StandardChannel};
+use channels_sv2::server::{
+    jobs::{job_store::DefaultJobStore, standard::StandardJob},
+    standard::StandardChannel,
+};
 use codec_sv2::binary_sv2::U256;
 use mining_sv2::Target;
 use std::collections::HashMap;
@@ -25,7 +28,7 @@ use std::sync::Arc;
 
 #[derive(uniffi::Object)]
 pub struct Sv2StandardChannelServer {
-    pub inner: Mutex<StandardChannel<'static>>,
+    pub inner: Mutex<StandardChannel<'static, DefaultJobStore<StandardJob<'static>>>>,
 }
 
 #[uniffi::export]
@@ -45,7 +48,7 @@ impl Sv2StandardChannelServer {
             .try_into()
             .map_err(|_| Sv2ServerStandardChannelError::BadMaxTarget)?;
         let max_target: Target = max_target.into();
-        let job_store = Box::new(DefaultJobStore::new());
+        let job_store = DefaultJobStore::new();
 
         let inner = StandardChannel::new_for_pool(
             channel_id,

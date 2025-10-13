@@ -4,7 +4,9 @@ use channels_sv2::server::share_accounting::{
     ShareValidationResult as InnerShareValidationResult,
 };
 use channels_sv2::server::{
-    error::ExtendedChannelError, extended::ExtendedChannel, jobs::job_store::DefaultJobStore,
+    error::ExtendedChannelError,
+    extended::ExtendedChannel,
+    jobs::{extended::ExtendedJob, job_store::DefaultJobStore},
 };
 use codec_sv2::binary_sv2::U256;
 use mining_sv2::Target;
@@ -27,7 +29,7 @@ use crate::messages::{
 
 #[derive(uniffi::Object)]
 pub struct Sv2ExtendedChannelServer {
-    pub inner: Mutex<ExtendedChannel<'static>>,
+    pub inner: Mutex<ExtendedChannel<'static, DefaultJobStore<ExtendedJob<'static>>>>,
 }
 
 #[uniffi::export]
@@ -49,7 +51,7 @@ impl Sv2ExtendedChannelServer {
             .try_into()
             .map_err(|_| Sv2ServerExtendedChannelError::BadMaxTarget)?;
         let max_target: Target = max_target.into();
-        let job_store = Box::new(DefaultJobStore::new());
+        let job_store = DefaultJobStore::new();
 
         let channel = ExtendedChannel::new_for_pool(
             channel_id,

@@ -1,5 +1,8 @@
 use bitcoin::transaction::TxOut;
-use channels_sv2::server::{group::GroupChannel, jobs::job_store::DefaultJobStore};
+use channels_sv2::server::{
+    group::GroupChannel,
+    jobs::{extended::ExtendedJob, job_store::DefaultJobStore},
+};
 use parsers_sv2::{AnyMessage, Mining};
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -16,7 +19,7 @@ use crate::messages::{
 
 #[derive(uniffi::Object)]
 pub struct Sv2GroupChannelServer {
-    pub inner: Mutex<GroupChannel<'static>>,
+    pub inner: Mutex<GroupChannel<'static, DefaultJobStore<ExtendedJob<'static>>>>,
 }
 
 #[uniffi::export]
@@ -26,7 +29,7 @@ impl Sv2GroupChannelServer {
         channel_id: u32,
         pool_tag_string: String,
     ) -> Result<Self, Sv2ServerGroupChannelError> {
-        let job_store = Box::new(DefaultJobStore::new());
+        let job_store = DefaultJobStore::new();
         let inner = GroupChannel::new_for_pool(channel_id, job_store, pool_tag_string);
         Ok(Self {
             inner: Mutex::new(inner),
