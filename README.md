@@ -22,4 +22,4 @@ This library should compile with any combination of features with Rust 1.82.0.
 
 - [x] Sv2 Codec with Noise Encryption
 - [x] Interfaces for all Sv2 messages
-- [ ] Interfaces for Sv2 Channels (Extended, Standard and Group)
+- [x] Interfaces for Sv2 Channels (Extended, Standard and Group)
