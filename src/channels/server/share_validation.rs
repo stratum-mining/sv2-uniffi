@@ -2,9 +2,8 @@ use std::fmt::Display;
 
 #[derive(uniffi::Enum)]
 pub enum ShareValidationResult {
-    Valid,
-    ValidWithAcknowledgement(u32, u32, u64),
-    BlockFound(Option<u64>, Vec<u8>),
+    Valid(Vec<u8>),
+    BlockFound(Vec<u8>, Option<u64>, Vec<u8>),
 }
 
 #[derive(uniffi::Enum, Debug)]
@@ -17,6 +16,7 @@ pub enum ShareValidationError {
     DuplicateShare,
     InvalidCoinbase,
     NoChainTip,
+    BadExtranonceSize,
 }
 
 impl Display for ShareValidationError {

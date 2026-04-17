@@ -15,11 +15,14 @@ pub enum Sv2ServerExtendedChannelError {
     FailedToProcessNewTemplate,
     FailedToProcessNewPrevHash,
     FailedToProcessSetCustomMiningJob,
+    FailedToProcessGroupChannelJob,
+    ExtranoncePrefixTooLarge,
     MessageIsNotNewTemplate,
     MessageIsNotSetNewPrevHash,
     MessageIsNotSetCustomMiningJob,
     MessageIsNotSubmitSharesExtended,
     MessageIsNotNewExtendedMiningJob,
+    MessageIsNotGroupChannelJob,
     ShareValidationError(ShareValidationError),
     FailedToGetActiveJob,
 }
@@ -36,6 +39,7 @@ pub enum Sv2ServerStandardChannelError {
     BadMaxTarget,
     LockError,
     FailedToUpdateChannel,
+    ExtranoncePrefixTooLarge,
     MessageIsNotNewTemplate,
     MessageIsNotSetNewPrevHash,
     MessageIsNotSubmitSharesStandard,
@@ -57,6 +61,7 @@ impl Display for Sv2ServerStandardChannelError {
 #[derive(Debug, uniffi::Error)]
 pub enum Sv2ServerGroupChannelError {
     LockError,
+    FailedToCreateGroupChannel,
     FailedToGetActiveJob,
     MessageIsNotNewExtendedMiningJob,
     MessageIsNotNewTemplate,
