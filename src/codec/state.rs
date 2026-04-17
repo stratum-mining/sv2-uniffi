@@ -1,6 +1,6 @@
-use codec_sv2::{
-    noise_sv2::{ELLSWIFT_ENCODING_SIZE, INITIATOR_EXPECTED_HANDSHAKE_MESSAGE_SIZE},
-    HandshakeRole, Initiator, Responder, State as InnerCodecState,
+use codec_sv2::{HandshakeRole, State as InnerCodecState};
+use noise_sv2::{
+    Initiator, Responder, ELLSWIFT_ENCODING_SIZE, INITIATOR_EXPECTED_HANDSHAKE_MESSAGE_SIZE,
 };
 
 use std::{convert::TryInto, sync::Mutex};
