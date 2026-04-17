@@ -5,6 +5,7 @@ Tests that verify extended channel server functionality.
 """
 
 SATS_AVAILABLE_IN_TEMPLATE = 5_000_000_000
+CLIENT_SEARCH_SPACE_BYTES = 20
 
 import traceback
 
@@ -21,7 +22,7 @@ def test_extended_channel_server():
             max_target=b"\xFF" * 32,
             nominal_hashrate=10_000.0,
             version_rolling_allowed=True,
-            requested_min_rollable_extranonce_size=1,
+            rollable_extranonce_size=CLIENT_SEARCH_SPACE_BYTES,
             share_batch_size=1,
             expected_share_per_minute=1.0,
             pool_tag_string="test",
@@ -53,18 +54,20 @@ def test_extended_channel_server():
         # process the future template to generate a future job on the channel
         extended_channel.on_new_template(template, [tx_output])
 
-        # get the future jobs on the channel
-        future_jobs = extended_channel.get_future_jobs()
-        
-        # check that the future job is set
-        if future_jobs:
-            _job_id, job = next(iter(future_jobs.items()))
+        # get the job id for the future job using the template_id
+        future_job_id = extended_channel.get_future_job_id_from_template_id(1)
 
-            # check that the job is future
-            if not job.is_future():
-                raise Exception("job is not future")
-        else:
-            raise Exception("no future jobs after processing future template")
+        # check that the future job is set
+        if future_job_id is None:
+            raise Exception("no future job id found for template_id=1")
+
+        job = extended_channel.get_future_job(future_job_id)
+        if job is None:
+            raise Exception("no future job found for job_id={}".format(future_job_id))
+
+        # check that the job is future
+        if not job.is_future():
+            raise Exception("job is not future")
         
         # set the new prev hash for the future job
         ntime = 1746839905

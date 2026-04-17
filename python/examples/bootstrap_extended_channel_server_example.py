@@ -40,6 +40,8 @@ from sv2 import (
 
 from itertools import count
 
+CLIENT_SEARCH_SPACE_BYTES = 20
+FULL_EXTRANONCE_SIZE = 32
 
 # Class that illustrates the context of a Mining Server
 class MiningServerContext:
@@ -77,10 +79,12 @@ class MiningServerContext:
         pool_tag_string: str,
         pool_payout_script_pubkey: bytes,
     ):
-        # imagine we want to use 12 bytes to generate unique Extranonce Prefixes for Extended Channels
-        # and allow 8 bytes to be rolled during mining
+        # reserve the non-client portion of the extranonce for pool-managed allocation
+        # and expose CLIENT_SEARCH_SPACE_BYTES bytes for clients to roll during mining
         self.extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(
-            allocation_size=12, rollable_size=8, static_prefix=static_prefix
+            allocation_size=FULL_EXTRANONCE_SIZE - CLIENT_SEARCH_SPACE_BYTES,
+            rollable_size=CLIENT_SEARCH_SPACE_BYTES,
+            static_prefix=static_prefix,
         )
 
         # a factory to generate unique Extranonce Prefixes for Standard Channels
@@ -122,7 +126,6 @@ class ConnectionContext:
     # a dictionary to keep track of the standard channels established with this specific client
     standard_channels: dict[int, Sv2StandardChannelServer]
     # a group channel established with this specific client
-    # this is not really used on this example, but it's good to have it
     group_channel: Sv2GroupChannelServer
 
     def __init__(
@@ -130,6 +133,7 @@ class ConnectionContext:
         requires_standard_jobs: bool,
         requires_work_selection: bool,
         requires_version_rolling: bool,
+        mining_server_context: MiningServerContext,
     ):
         self.channel_id_factory = count(start=0)
         self.requires_standard_jobs = requires_standard_jobs
@@ -137,9 +141,28 @@ class ConnectionContext:
         self.requires_version_rolling = requires_version_rolling
         self.extended_channels = {}
         self.standard_channels = {}
-        # this is not really used on this example, so we set it to None
-        # check bootstrap_standard_channel_server_example.py for an example of how to use a group channel
-        self.group_channel = None
+
+        self.group_channel = Sv2GroupChannelServer(
+            group_channel_id=next(self.channel_id_factory),
+            full_extranonce_size=FULL_EXTRANONCE_SIZE,
+            pool_tag_string=mining_server_context.pool_tag_string,
+        )
+
+        coinbase_reward_outputs = [
+            TxOutput(
+                value=mining_server_context.cached_future_template.coinbase_tx_value_remaining,
+                script_pubkey=mining_server_context.pool_payout_script_pubkey,
+            )
+        ]
+
+        self.group_channel.on_new_template(
+            template=mining_server_context.cached_future_template,
+            coinbase_reward_outputs=coinbase_reward_outputs,
+        )
+
+        self.group_channel.on_set_new_prev_hash(
+            set_new_prev_hash=mining_server_context.cached_set_new_prev_hash_tdp,
+        )
 
 
 def bootstrap_extended_channel_server(
@@ -177,7 +200,7 @@ def bootstrap_extended_channel_server(
             max_target=open_extended_mining_channel_message.max_target,
             nominal_hashrate=open_extended_mining_channel_message.nominal_hash_rate,
             version_rolling_allowed=mining_server.version_rolling_allowed,
-            requested_min_rollable_extranonce_size=open_extended_mining_channel_message.min_extranonce_size,
+            rollable_extranonce_size=CLIENT_SEARCH_SPACE_BYTES,
             share_batch_size=mining_server.share_batch_size,
             expected_share_per_minute=mining_server.expected_shares_per_minute,
             pool_tag_string=mining_server.pool_tag_string,
@@ -206,9 +229,16 @@ def bootstrap_extended_channel_server(
         new_extended_channel
     )
 
+    group_channel_id = connection.group_channel.get_group_channel_id()
+    connection.group_channel.add_channel_id(
+        channel_id=new_extended_channel.get_channel_id(),
+        full_extranonce_size=new_extended_channel.get_full_extranonce_size(),
+    )
+
     open_extended_mining_channel_success = OpenExtendedMiningChannelSuccess(
         request_id=open_extended_mining_channel_message.request_id,
         channel_id=new_extended_channel.get_channel_id(),
+        group_channel_id=group_channel_id,
         target=new_extended_channel.get_target(),
         extranonce_prefix=new_extended_channel.get_extranonce_prefix(),
         extranonce_size=new_extended_channel.get_rollable_extranonce_size(),
@@ -248,14 +278,14 @@ def bootstrap_extended_channel_server(
         )
 
         # get the job id for the future job
-        future_extended_job_id = new_extended_channel.get_future_template_to_job_id()[
+        future_extended_job_id = new_extended_channel.get_future_job_id_from_template_id(
             mining_server.cached_future_template.template_id
-        ]
+        )
 
         # we're going to send the future job to the client
-        future_extended_job_message = new_extended_channel.get_future_jobs()[
+        future_extended_job_message = new_extended_channel.get_future_job(
             future_extended_job_id
-        ].get_job_message()
+        ).get_job_message()
 
         # activate the future job locally with the cached set_new_prev_hash_tdp
         new_extended_channel.on_set_new_prev_hash(
@@ -281,8 +311,14 @@ def pretty_format(obj):
     """
     Format objects for nice printing output.
     """
+    if obj is None:
+        return "None"
+
     if isinstance(obj, Sv2ExtendedChannelServer):
         return f"Sv2ExtendedChannelServer(channel_id={obj.get_channel_id()})"
+
+    if isinstance(obj, Sv2GroupChannelServer):
+        return f"Sv2GroupChannelServer(group_channel_id={obj.get_group_channel_id()}, channel_ids={obj.get_channel_ids()})"
 
     # Handle message objects with attributes
     if hasattr(obj, "__dict__"):
@@ -358,12 +394,14 @@ def main():
         requires_standard_jobs=False,
         requires_work_selection=True,
         requires_version_rolling=True,
+        mining_server_context=mining_server_context,
     )
     # this client wants to work on jobs provided by the pool
     connection_b = ConnectionContext(
         requires_standard_jobs=False,
         requires_work_selection=False,
         requires_version_rolling=True,
+        mining_server_context=mining_server_context,
     )
 
     # imagine client A sends a OpenExtendedMiningChannel message
@@ -473,12 +511,16 @@ def main():
     print("connection_a.extended_channels:")
     for _, channel in connection_a.extended_channels.items():
         print(pretty_format(channel))
+    print("-" * 50)
+    print("connection_a.group_channel:", pretty_format(connection_a.group_channel))
 
     print("=" * 50)
     print("=" * 50)
     print("connection_b.extended_channels:")
     for _, channel in connection_b.extended_channels.items():
         print(pretty_format(channel))
+    print("-" * 50)
+    print("connection_b.group_channel:", pretty_format(connection_b.group_channel))
 
 
 if __name__ == "__main__":

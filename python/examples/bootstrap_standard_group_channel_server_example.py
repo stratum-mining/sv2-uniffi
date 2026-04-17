@@ -40,6 +40,9 @@ from sv2 import (
 
 from itertools import count
 
+CLIENT_SEARCH_SPACE_BYTES = 20
+FULL_EXTRANONCE_SIZE = 32
+
 
 # Class that illustrates the context of a Mining Server
 class MiningServerContext:
@@ -77,11 +80,12 @@ class MiningServerContext:
         pool_tag_string: str,
         pool_payout_script_pubkey: bytes,
     ):
-        # imagine we want to use 12 bytes to generate unique Extranonce Prefixes for Extended Channels
-        # and allow 8 bytes to be rolled during mining
-        # (this is not really used on this example, but it's good to have it)
+        # reserve the non-client portion of the extranonce for pool-managed allocation
+        # and expose CLIENT_SEARCH_SPACE_BYTES bytes for clients to roll during mining
         self.extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(
-            allocation_size=12, rollable_size=8, static_prefix=static_prefix
+            allocation_size=FULL_EXTRANONCE_SIZE - CLIENT_SEARCH_SPACE_BYTES,
+            rollable_size=CLIENT_SEARCH_SPACE_BYTES,
+            static_prefix=static_prefix,
         )
 
         # a factory to generate unique Extranonce Prefixes for Standard Channels
@@ -145,7 +149,8 @@ class ConnectionContext:
         else:
             # bootstrap a group channel for this connection
             self.group_channel = Sv2GroupChannelServer(
-                channel_id=next(self.channel_id_factory),
+                group_channel_id=next(self.channel_id_factory),
+                full_extranonce_size=FULL_EXTRANONCE_SIZE,
                 pool_tag_string=mining_server_context.pool_tag_string,
             )
 
@@ -239,8 +244,9 @@ def bootstrap_standard_channel_server(
         group_channel_id = connection_context.group_channel.get_group_channel_id()
 
         # we also need to add the standard channel id to the group channel
-        connection_context.group_channel.add_standard_channel_id(
-            standard_channel_id=new_standard_channel.get_channel_id(),
+        connection_context.group_channel.add_channel_id(
+            channel_id=new_standard_channel.get_channel_id(),
+            full_extranonce_size=len(new_standard_channel.get_extranonce_prefix()),
         )
     else:
         # if we're not using the Group Channel, we use a dummy channel_id
@@ -276,17 +282,17 @@ def bootstrap_standard_channel_server(
     )
 
     # get the job id for the future job
-    future_standard_job_id = new_standard_channel.get_future_template_to_job_id()[
+    future_standard_job_id = new_standard_channel.get_future_job_id_from_template_id(
         mining_server_context.cached_future_template.template_id
-    ]
+    )
 
     # we're going to send the future job to the client
     # this one will be a standard job, regardless of whether we're using the Group Channel or not
     # this is only during the bootstrap process
     # next jobs will be extended for Group Channel, in case the connection allows for it
-    future_standard_job_message = new_standard_channel.get_future_jobs()[
+    future_standard_job_message = new_standard_channel.get_future_job(
         future_standard_job_id
-    ].get_job_message()
+    ).get_job_message()
 
     # activate the future job locally with the cached set_new_prev_hash_tdp
     new_standard_channel.on_set_new_prev_hash(
@@ -316,7 +322,7 @@ def pretty_format(obj):
         return f"Sv2StandardChannelServer(channel_id={obj.get_channel_id()})"
 
     if isinstance(obj, Sv2GroupChannelServer):
-        return f"Sv2GroupChannelServer(channel_id={obj.get_group_channel_id()}, standard_channel_ids={obj.get_standard_channel_ids()})"
+        return f"Sv2GroupChannelServer(channel_id={obj.get_group_channel_id()}, channel_ids={obj.get_channel_ids()})"
 
     # Handle message objects with attributes
     if hasattr(obj, "__dict__"):

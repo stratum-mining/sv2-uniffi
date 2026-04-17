@@ -16,6 +16,7 @@ def test_extranonce_prefix_factory():
         # Create a new extended extranonce prefix factory
         extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(
             allocation_size=allocation_size,
+            rollable_size=8,
             static_prefix=b"\xff",
         )
 
