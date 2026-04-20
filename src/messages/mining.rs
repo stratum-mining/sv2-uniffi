@@ -28,6 +28,7 @@ pub struct OpenExtendedMiningChannel {
 pub struct OpenExtendedMiningChannelSuccess {
     pub request_id: u32,
     pub channel_id: u32,
+    pub group_channel_id: u32,
     pub target: Vec<u8>,
     pub extranonce_size: u16,
     pub extranonce_prefix: Vec<u8>,

@@ -13,8 +13,6 @@ This example demonstrates how to create a TCP client that:
 
 import socket
 import base58
-import time
-from typing import Optional
 
 from sv2 import (
     Sv2CodecState,
@@ -23,8 +21,6 @@ from sv2 import (
     Sv2Message,
     SetupConnection,
     CoinbaseOutputConstraints,
-    Sv2CodecError,
-    Sv2MessageError
 )
 
 def get_server_ip() -> str:

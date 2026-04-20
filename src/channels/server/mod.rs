@@ -1,3 +1,4 @@
+mod chain_tip;
 mod error;
 mod extended;
 mod extranonce_prefix;

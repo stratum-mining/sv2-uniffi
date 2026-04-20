@@ -87,11 +87,10 @@ impl Sv2Decoder {
                 let sv2_frame_header = sv2_frame
                     .get_header()
                     .ok_or(Sv2CodecError::FailedToGetFrameHeader)?;
-                let sv2_message_type = sv2_frame_header.msg_type();
                 let mut sv2_message_payload = sv2_frame.payload().to_vec();
 
                 let sv2_message: InnerAnyMessage =
-                    (sv2_message_type, sv2_message_payload.as_mut_slice())
+                    (sv2_frame_header, sv2_message_payload.as_mut_slice())
                         .try_into()
                         .map_err(|_| Sv2CodecError::FailedToDecodeFrame)?;
                 let sv2_message: InnerAnyMessage<'static> = sv2_message.into_static();

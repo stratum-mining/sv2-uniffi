@@ -23,8 +23,6 @@ from sv2 import (
     Sv2Encoder,
     Sv2Message,
     SetupConnectionSuccess,
-    Sv2CodecError,
-    Sv2MessageError,
 )
 
 def get_authority_keypair() -> tuple[bytes, bytes]:

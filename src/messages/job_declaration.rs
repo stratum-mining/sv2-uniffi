@@ -18,7 +18,7 @@ pub struct DeclareMiningJob {
     pub version: u32,
     pub coinbase_tx_prefix: Vec<u8>,
     pub coinbase_tx_suffix: Vec<u8>,
-    pub tx_ids_list: Vec<Vec<u8>>,
+    pub wtxid_list: Vec<Vec<u8>>,
     pub excess_data: Vec<u8>,
 }
 

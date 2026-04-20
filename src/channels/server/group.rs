@@ -1,10 +1,10 @@
+use crate::channels::server::chain_tip::Sv2ChainTip;
 use bitcoin::transaction::TxOut;
 use channels_sv2::server::{
     group::GroupChannel,
     jobs::{extended::ExtendedJob, job_store::DefaultJobStore},
 };
 use parsers_sv2::{AnyMessage, Mining};
-use std::collections::HashMap;
 use std::sync::Mutex;
 
 use crate::channels::server::error::Sv2ServerGroupChannelError;
@@ -26,37 +26,44 @@ pub struct Sv2GroupChannelServer {
 impl Sv2GroupChannelServer {
     #[uniffi::constructor]
     pub fn new(
-        channel_id: u32,
+        group_channel_id: u32,
+        full_extranonce_size: u64,
         pool_tag_string: String,
     ) -> Result<Self, Sv2ServerGroupChannelError> {
         let job_store = DefaultJobStore::new();
-        let inner = GroupChannel::new_for_pool(channel_id, job_store, pool_tag_string);
+        let inner = GroupChannel::new_for_pool(
+            group_channel_id,
+            job_store,
+            full_extranonce_size as usize,
+            pool_tag_string,
+        )
+        .map_err(|_| Sv2ServerGroupChannelError::FailedToCreateGroupChannel)?;
         Ok(Self {
             inner: Mutex::new(inner),
         })
     }
 
-    pub fn add_standard_channel_id(
+    pub fn add_channel_id(
         &self,
-        standard_channel_id: u32,
+        channel_id: u32,
+        full_extranonce_size: u64,
     ) -> Result<(), Sv2ServerGroupChannelError> {
         let mut channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
-        channel.add_standard_channel_id(standard_channel_id);
+        channel
+            .add_channel_id(channel_id, full_extranonce_size as usize)
+            .map_err(|_| Sv2ServerGroupChannelError::FailedToCreateGroupChannel)?;
         Ok(())
     }
 
-    pub fn remove_standard_channel_id(
-        &self,
-        standard_channel_id: u32,
-    ) -> Result<(), Sv2ServerGroupChannelError> {
+    pub fn remove_channel_id(&self, channel_id: u32) -> Result<(), Sv2ServerGroupChannelError> {
         let mut channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
-        channel.remove_standard_channel_id(standard_channel_id);
+        channel.remove_channel_id(channel_id);
         Ok(())
     }
 
@@ -75,7 +82,7 @@ impl Sv2GroupChannelServer {
             .collect();
 
         let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(template))
-            .map_err(|e| Sv2ServerGroupChannelError::FailedToConvertMessage(e))?;
+            .map_err(Sv2ServerGroupChannelError::FailedToConvertMessage)?;
 
         let inner_template = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -101,7 +108,7 @@ impl Sv2GroupChannelServer {
         let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution(
             set_new_prev_hash,
         ))
-        .map_err(|e| Sv2ServerGroupChannelError::FailedToConvertMessage(e))?;
+        .map_err(Sv2ServerGroupChannelError::FailedToConvertMessage)?;
 
         let inner_set_new_prev_hash = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -124,16 +131,12 @@ impl Sv2GroupChannelServer {
         Ok(channel.get_group_channel_id())
     }
 
-    pub fn get_standard_channel_ids(&self) -> Result<Vec<u32>, Sv2ServerGroupChannelError> {
+    pub fn get_channel_ids(&self) -> Result<Vec<u32>, Sv2ServerGroupChannelError> {
         let channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
-        Ok(channel
-            .get_standard_channel_ids()
-            .into_iter()
-            .copied()
-            .collect())
+        Ok(channel.get_channel_ids().iter().copied().collect())
     }
 
     pub fn get_active_job(&self) -> Result<NewExtendedMiningJob, Sv2ServerGroupChannelError> {
@@ -155,17 +158,17 @@ impl Sv2GroupChannelServer {
         Ok(job_message)
     }
 
-    pub fn get_future_jobs(
+    pub fn get_future_job(
         &self,
-    ) -> Result<HashMap<u32, NewExtendedMiningJob>, Sv2ServerGroupChannelError> {
+        job_id: u32,
+    ) -> Result<Option<NewExtendedMiningJob>, Sv2ServerGroupChannelError> {
         let channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
-        let inner_jobs = channel.get_future_jobs();
-        let jobs = inner_jobs
-            .iter()
-            .map(|(job_id, job)| {
+        let inner_job = channel.get_future_job(job_id);
+        let job = inner_job
+            .map(|job| {
                 let job_message = job.get_job_message();
                 let job_message = inner_to_sv2_message(&AnyMessage::Mining(
                     Mining::NewExtendedMiningJob(job_message.clone()),
@@ -174,20 +177,49 @@ impl Sv2GroupChannelServer {
                     Sv2Message::NewExtendedMiningJob(job) => job,
                     _ => return Err(Sv2ServerGroupChannelError::MessageIsNotNewExtendedMiningJob),
                 };
-                Ok((*job_id, job_message))
+                Ok(job_message)
             })
-            .collect::<Result<HashMap<_, _>, _>>()?;
-        Ok(jobs)
+            .transpose()?;
+        Ok(job)
     }
 
-    pub fn get_future_template_to_job_id(
+    pub fn get_future_job_id_from_template_id(
         &self,
-    ) -> Result<HashMap<u64, u32>, Sv2ServerGroupChannelError> {
+        template_id: u64,
+    ) -> Result<Option<u32>, Sv2ServerGroupChannelError> {
         let channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
-        let inner_template_to_job_id = channel.get_future_template_to_job_id();
-        Ok(inner_template_to_job_id.clone())
+        let job_id = channel.get_future_job_id_from_template_id(template_id);
+        Ok(job_id)
+    }
+
+    pub fn get_full_extranonce_size(&self) -> Result<u64, Sv2ServerGroupChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
+        Ok(channel.get_full_extranonce_size() as u64)
+    }
+
+    pub fn set_full_extranonce_size(
+        &self,
+        full_extranonce_size: u64,
+    ) -> Result<(), Sv2ServerGroupChannelError> {
+        let mut channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
+        channel.set_full_extranonce_size(full_extranonce_size as usize);
+        Ok(())
+    }
+
+    pub fn get_chain_tip(&self) -> Result<Option<Sv2ChainTip>, Sv2ServerGroupChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
+        Ok(channel.get_chain_tip().map(Sv2ChainTip::from))
     }
 }

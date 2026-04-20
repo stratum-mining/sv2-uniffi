@@ -22,9 +22,6 @@ from sv2 import (
     Sv2Encoder,
     Sv2Message,
     SetupConnection,
-    Sv2CodecError,
-    Sv2MessageError,
-    SetupConnectionSuccess
 )
 
 def get_authority_public_key() -> bytes:

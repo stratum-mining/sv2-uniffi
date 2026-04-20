@@ -1,4 +1,7 @@
+use crate::channels::server::chain_tip::Sv2ChainTip;
+use binary_sv2::U256;
 use bitcoin::transaction::TxOut;
+use bitcoin::Target;
 use channels_sv2::server::share_accounting::{
     ShareValidationError as InnerShareValidationError,
     ShareValidationResult as InnerShareValidationResult,
@@ -7,9 +10,6 @@ use channels_sv2::server::{
     jobs::{job_store::DefaultJobStore, standard::StandardJob},
     standard::StandardChannel,
 };
-use codec_sv2::binary_sv2::U256;
-use mining_sv2::Target;
-use std::collections::HashMap;
 use std::{convert::TryInto, sync::Mutex};
 
 use crate::channels::server::error::Sv2ServerStandardChannelError;
@@ -34,6 +34,7 @@ pub struct Sv2StandardChannelServer {
 #[uniffi::export]
 impl Sv2StandardChannelServer {
     #[uniffi::constructor]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         channel_id: u32,
         user_identity: String,
@@ -47,7 +48,7 @@ impl Sv2StandardChannelServer {
         let max_target: [u8; 32] = max_target
             .try_into()
             .map_err(|_| Sv2ServerStandardChannelError::BadMaxTarget)?;
-        let max_target: Target = max_target.into();
+        let max_target = Target::from_le_bytes(max_target);
         let job_store = DefaultJobStore::new();
 
         let inner = StandardChannel::new_for_pool(
@@ -77,7 +78,7 @@ impl Sv2StandardChannelServer {
                 let target_array: [u8; 32] = target
                     .try_into()
                     .map_err(|_| Sv2ServerStandardChannelError::BadMaxTarget)?;
-                Some(target_array.into())
+                Some(Target::from_le_bytes(target_array))
             }
             None => None,
         };
@@ -106,7 +107,7 @@ impl Sv2StandardChannelServer {
             .collect();
 
         let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(template))
-            .map_err(|e| Sv2ServerStandardChannelError::FailedToConvertMessage(e))?;
+            .map_err(Sv2ServerStandardChannelError::FailedToConvertMessage)?;
 
         let inner_template = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -150,7 +151,7 @@ impl Sv2StandardChannelServer {
         let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution(
             set_new_prev_hash,
         ))
-        .map_err(|e| Sv2ServerStandardChannelError::FailedToConvertMessage(e))?;
+        .map_err(Sv2ServerStandardChannelError::FailedToConvertMessage)?;
 
         let inner_set_new_prev_hash = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -175,7 +176,7 @@ impl Sv2StandardChannelServer {
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
 
         let any_message = sv2_message_to_inner(Sv2Message::SubmitSharesStandard(share))
-            .map_err(|e| Sv2ServerStandardChannelError::FailedToConvertMessage(e))?;
+            .map_err(Sv2ServerStandardChannelError::FailedToConvertMessage)?;
 
         let inner_share = match any_message {
             parsers_sv2::AnyMessage::Mining(parsers_sv2::Mining::SubmitSharesStandard(share)) => {
@@ -187,19 +188,12 @@ impl Sv2StandardChannelServer {
         let result = channel.validate_share(inner_share);
 
         match result {
-            Ok(InnerShareValidationResult::Valid) => Ok(ShareValidationResult::Valid),
-            Ok(InnerShareValidationResult::ValidWithAcknowledgement(
-                last_sequence_number,
-                new_submits_accepted_count,
-                new_shares_sum,
-            )) => Ok(ShareValidationResult::ValidWithAcknowledgement(
-                last_sequence_number,
-                new_submits_accepted_count,
-                new_shares_sum,
-            )),
-            Ok(InnerShareValidationResult::BlockFound(template_id, coinbase)) => {
-                Ok(ShareValidationResult::BlockFound(template_id, coinbase))
+            Ok(InnerShareValidationResult::Valid(hash)) => {
+                Ok(ShareValidationResult::Valid(hash[..].to_vec()))
             }
+            Ok(InnerShareValidationResult::BlockFound(share_hash, template_id, coinbase)) => Ok(
+                ShareValidationResult::BlockFound(share_hash[..].to_vec(), template_id, coinbase),
+            ),
             Err(InnerShareValidationError::Invalid) => Err(
                 Sv2ServerStandardChannelError::ShareValidationError(ShareValidationError::Invalid),
             ),
@@ -236,6 +230,11 @@ impl Sv2StandardChannelServer {
                     ShareValidationError::NoChainTip,
                 ))
             }
+            Err(InnerShareValidationError::BadExtranonceSize) => {
+                Err(Sv2ServerStandardChannelError::ShareValidationError(
+                    ShareValidationError::BadExtranonceSize,
+                ))
+            }
         }
     }
 
@@ -247,19 +246,17 @@ impl Sv2StandardChannelServer {
         Ok(channel.get_channel_id())
     }
 
-    pub fn get_past_jobs(
+    pub fn get_past_job(
         &self,
-    ) -> Result<HashMap<u32, Arc<Sv2StandardJob>>, Sv2ServerStandardChannelError> {
+        job_id: u32,
+    ) -> Result<Option<Arc<Sv2StandardJob>>, Sv2ServerStandardChannelError> {
         let channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
-        let inner_jobs = channel.get_past_jobs();
-        let jobs = inner_jobs
-            .iter()
-            .map(|(job_id, job)| Ok((*job_id, Arc::new(Sv2StandardJob::from_inner(job.clone())))))
-            .collect::<Result<HashMap<_, _>, _>>()?;
-        Ok(jobs)
+        let inner_jobs = channel.get_past_job(job_id);
+        let job = inner_jobs.map(|job| Arc::new(Sv2StandardJob::from_inner(job.clone())));
+        Ok(job)
     }
 
     pub fn get_active_job(&self) -> Result<Arc<Sv2StandardJob>, Sv2ServerStandardChannelError> {
@@ -273,30 +270,29 @@ impl Sv2StandardChannelServer {
         Ok(Arc::new(Sv2StandardJob::from_inner(inner_job.clone())))
     }
 
-    pub fn get_future_jobs(
+    pub fn get_future_job(
         &self,
-    ) -> Result<HashMap<u32, Arc<Sv2StandardJob>>, Sv2ServerStandardChannelError> {
+        job_id: u32,
+    ) -> Result<Option<Arc<Sv2StandardJob>>, Sv2ServerStandardChannelError> {
         let channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
-        let inner_jobs = channel.get_future_jobs();
-        let jobs = inner_jobs
-            .iter()
-            .map(|(job_id, job)| Ok((*job_id, Arc::new(Sv2StandardJob::from_inner(job.clone())))))
-            .collect::<Result<HashMap<_, _>, _>>()?;
-        Ok(jobs)
+        let inner_job = channel.get_future_job(job_id);
+        let job = inner_job.map(|job| Arc::new(Sv2StandardJob::from_inner(job.clone())));
+        Ok(job)
     }
 
-    pub fn get_future_template_to_job_id(
+    pub fn get_future_job_id_from_template_id(
         &self,
-    ) -> Result<HashMap<u64, u32>, Sv2ServerStandardChannelError> {
+        template_id: u64,
+    ) -> Result<Option<u32>, Sv2ServerStandardChannelError> {
         let channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
-        let inner_template_to_job_id = channel.get_future_template_to_job_id();
-        Ok(inner_template_to_job_id.clone())
+        let inner_template_to_job_id = channel.get_future_job_id_from_template_id(template_id);
+        Ok(inner_template_to_job_id)
     }
 
     pub fn get_target(&self) -> Result<Vec<u8>, Sv2ServerStandardChannelError> {
@@ -304,7 +300,7 @@ impl Sv2StandardChannelServer {
             .inner
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
-        let target_u256: U256 = channel.get_target().clone().into();
+        let target_u256: U256 = (*channel.get_target()).to_le_bytes().into();
         Ok(target_u256.to_vec())
     }
 
@@ -314,5 +310,98 @@ impl Sv2StandardChannelServer {
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
         Ok(channel.get_extranonce_prefix().to_vec())
+    }
+
+    pub fn get_user_identity(&self) -> Result<String, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        Ok(channel.get_user_identity().clone())
+    }
+
+    pub fn get_nominal_hashrate(&self) -> Result<f32, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        Ok(channel.get_nominal_hashrate())
+    }
+
+    pub fn get_shares_per_minute(&self) -> Result<f32, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        Ok(channel.get_shares_per_minute())
+    }
+
+    pub fn get_requested_max_target(&self) -> Result<Vec<u8>, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        let target_u256: U256 = (*channel.get_requested_max_target()).to_le_bytes().into();
+        Ok(target_u256.to_vec())
+    }
+
+    pub fn get_stale_job(
+        &self,
+        job_id: u32,
+    ) -> Result<Option<Arc<Sv2StandardJob>>, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        let job = channel
+            .get_stale_job(job_id)
+            .map(|job| Arc::new(Sv2StandardJob::from_inner(job.clone())));
+        Ok(job)
+    }
+
+    pub fn set_target(&self, target: Vec<u8>) -> Result<(), Sv2ServerStandardChannelError> {
+        let target: [u8; 32] = target
+            .try_into()
+            .map_err(|_| Sv2ServerStandardChannelError::BadMaxTarget)?;
+        let target = Target::from_le_bytes(target);
+        let mut channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        channel.set_target(target);
+        Ok(())
+    }
+
+    pub fn set_nominal_hashrate(
+        &self,
+        nominal_hashrate: f32,
+    ) -> Result<(), Sv2ServerStandardChannelError> {
+        let mut channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        channel.set_nominal_hashrate(nominal_hashrate);
+        Ok(())
+    }
+
+    pub fn set_extranonce_prefix(
+        &self,
+        extranonce_prefix: Vec<u8>,
+    ) -> Result<(), Sv2ServerStandardChannelError> {
+        let mut channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        channel
+            .set_extranonce_prefix(extranonce_prefix)
+            .map_err(|_| Sv2ServerStandardChannelError::ExtranoncePrefixTooLarge)
+    }
+
+    pub fn get_chain_tip(&self) -> Result<Option<Sv2ChainTip>, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        Ok(channel.get_chain_tip().map(Sv2ChainTip::from))
     }
 }
