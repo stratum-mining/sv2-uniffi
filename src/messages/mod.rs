@@ -13,7 +13,7 @@ use crate::messages::{
     mining::*,
     template_distribution::*,
 };
-use binary_sv2::Sv2Option;
+use binary_sv2::{Seq0255, Seq064K, Sv2Option};
 use common_messages_sv2::{
     ChannelEndpointChanged as InnerChannelEndpointChanged, Protocol as InnerProtocol,
     Reconnect as InnerReconnect, SetupConnection as InnerSetupConnection,
@@ -442,7 +442,8 @@ pub fn sv2_message_to_inner(
                         .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let merkle_path = merkle_path.into();
+            let merkle_path = Seq0255::new(merkle_path)
+                .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?;
 
             let inner_new_extended_mining_job = InnerNewExtendedMiningJob {
                 channel_id: new_extended_mining_job.channel_id,
@@ -490,7 +491,8 @@ pub fn sv2_message_to_inner(
                         .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let merkle_path = merkle_path.into();
+            let merkle_path = Seq0255::new(merkle_path)
+                .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?;
             let inner_set_custom_mining_job = InnerSetCustomMiningJob {
                 channel_id: set_custom_mining_job.channel_id,
                 request_id: set_custom_mining_job.request_id,
@@ -593,7 +595,8 @@ pub fn sv2_message_to_inner(
                         .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let merkle_path = merkle_path.into();
+            let merkle_path = Seq0255::new(merkle_path)
+                .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?;
             let inner_new_template = InnerNewTemplate {
                 template_id: new_template.template_id,
                 future_template: new_template.future_template,
@@ -660,7 +663,8 @@ pub fn sv2_message_to_inner(
                         .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let transaction_list = transaction_list.into();
+            let transaction_list = Seq064K::new(transaction_list)
+                .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?;
             let inner_request_transaction_data_success = InnerRequestTransactionDataSuccess {
                 template_id: request_transaction_data_success.template_id,
                 excess_data: request_transaction_data_success
@@ -751,7 +755,8 @@ pub fn sv2_message_to_inner(
                         .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let tx_ids_list = tx_ids_list.into();
+            let tx_ids_list = Seq064K::new(tx_ids_list)
+                .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?;
             let inner_declare_mining_job = InnerDeclareMiningJob {
                 request_id: declare_mining_job.request_id,
                 mining_job_token: declare_mining_job
@@ -836,7 +841,8 @@ pub fn sv2_message_to_inner(
             let inner_provide_missing_transactions_success =
                 InnerProvideMissingTransactionsSuccess {
                     request_id: provide_missing_transactions_success.request_id,
-                    transaction_list: transaction_list.into(),
+                    transaction_list: Seq064K::new(transaction_list)
+                        .map_err(|_| Sv2MessageError::FailedToSerializeByteArray)?,
                 };
             let inner_message = InnerAnyMessage::JobDeclaration(
                 InnerJobDeclarationMessages::ProvideMissingTransactionsSuccess(
@@ -1497,5 +1503,50 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .clone()
                 .into_inner(),
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_failed_to_serialize_byte_array(
+        result: Result<InnerAnyMessage<'static>, Sv2MessageError>,
+    ) {
+        assert!(matches!(
+            result,
+            Err(Sv2MessageError::FailedToSerializeByteArray)
+        ));
+    }
+
+    #[test]
+    fn rejects_overlong_seq0255_merkle_path() {
+        let message = NewExtendedMiningJob {
+            channel_id: 0,
+            job_id: 0,
+            min_ntime: None,
+            version: 0,
+            version_rolling_allowed: false,
+            merkle_path: (0..=u8::MAX).map(|_| vec![0; 32]).collect(),
+            coinbase_tx_prefix: Vec::new(),
+            coinbase_tx_suffix: Vec::new(),
+        };
+
+        assert_failed_to_serialize_byte_array(sv2_message_to_inner(
+            Sv2Message::NewExtendedMiningJob(message),
+        ));
+    }
+
+    #[test]
+    fn rejects_overlong_seq064k_transaction_list() {
+        let message = RequestTransactionDataSuccess {
+            template_id: 0,
+            excess_data: Vec::new(),
+            transaction_list: (0..=u16::MAX).map(|_| Vec::new()).collect(),
+        };
+
+        assert_failed_to_serialize_byte_array(sv2_message_to_inner(
+            Sv2Message::RequestTransactionDataSuccess(message),
+        ));
     }
 }
