@@ -15,7 +15,9 @@ use std::{convert::TryInto, sync::Mutex};
 use crate::channels::server::error::Sv2ServerStandardChannelError;
 use crate::channels::server::jobs::extended::Sv2ExtendedJob;
 use crate::channels::server::jobs::standard::Sv2StandardJob;
-use crate::channels::server::share_validation::{ShareValidationError, ShareValidationResult};
+use crate::channels::server::share_accounting::{
+    ShareAccounting, ShareValidationError, ShareValidationResult,
+};
 use crate::channels::txout::TxOutput;
 use crate::messages::{
     mining::SubmitSharesStandard,
@@ -334,6 +336,16 @@ impl Sv2StandardChannelServer {
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
         Ok(channel.get_shares_per_minute())
+    }
+
+    pub fn get_share_accounting(&self) -> Result<ShareAccounting, Sv2ServerStandardChannelError> {
+        let channel = self
+            .inner
+            .lock()
+            .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        Ok(ShareAccounting::from_inner(
+            channel.get_share_accounting().clone(),
+        ))
     }
 
     pub fn get_requested_max_target(&self) -> Result<Vec<u8>, Sv2ServerStandardChannelError> {

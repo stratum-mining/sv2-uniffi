@@ -11,6 +11,7 @@ from test_message_creation import test_message_creation
 from test_encoding_decoding import test_encoding_decoding
 from test_error_handling import test_error_handling
 from test_extended_channel_server import test_extended_channel_server
+from test_share_accounting import test_share_accounting
 
 def run_all_tests():
     """Run all tests and report results."""
@@ -44,6 +45,10 @@ def run_all_tests():
     # Test 6: Extended channel server
     print("\n6. Extended Channel Server Test:")
     results.append(test_extended_channel_server())
+
+    # Test 7: Share accounting
+    print("\n7. Share Accounting Test:")
+    results.append(test_share_accounting())
     
     # Summary
     print("\n" + "=" * 40)
@@ -61,4 +66,4 @@ def run_all_tests():
 
 if __name__ == "__main__":
     success = run_all_tests()
-    exit(0 if success else 1) 
+    exit(0 if success else 1)

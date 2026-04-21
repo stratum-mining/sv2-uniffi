@@ -1,4 +1,4 @@
-use crate::channels::server::share_validation::ShareValidationError;
+use crate::channels::server::share_accounting::ShareValidationError;
 use crate::messages::error::Sv2MessageError;
 use std::fmt::Display;
 

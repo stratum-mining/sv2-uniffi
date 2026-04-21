@@ -4,5 +4,5 @@ mod extended;
 mod extranonce_prefix;
 mod group;
 mod jobs;
-mod share_validation;
+mod share_accounting;
 mod standard;
