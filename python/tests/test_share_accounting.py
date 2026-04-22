@@ -31,12 +31,25 @@ def _assert_initial_accounting(accounting, expected_batch_size):
 def test_share_accounting():
     """Test share accounting exposure on server channel wrappers."""
     try:
-        from sv2 import Sv2ExtendedChannelServer, Sv2StandardChannelServer
+        from sv2 import Sv2ExtendedChannelServer, Sv2ExtranonceAllocator, Sv2StandardChannelServer
+
+        extended_extranonce_allocator = Sv2ExtranonceAllocator(
+            local_prefix_bytes=b"\xFF",
+            total_extranonce_len=22,
+            max_channels=256,
+        )
+        standard_extranonce_allocator = Sv2ExtranonceAllocator(
+            local_prefix_bytes=b"\xFF",
+            total_extranonce_len=32,
+            max_channels=256,
+        )
 
         extended_channel = Sv2ExtendedChannelServer(
             channel_id=1,
             user_identity="test",
-            extranonce_prefix=b"\xFF" * 16,
+            extranonce_prefix=extended_extranonce_allocator.allocate_extended(
+                min_rollable_size=20
+            ),
             max_target=b"\xFF" * 32,
             nominal_hashrate=10_000.0,
             version_rolling_allowed=True,
@@ -49,7 +62,7 @@ def test_share_accounting():
         standard_channel = Sv2StandardChannelServer(
             channel_id=2,
             user_identity="test",
-            extranonce_prefix=b"\xFF" * 16,
+            extranonce_prefix=standard_extranonce_allocator.allocate_standard(),
             max_target=b"\xFF" * 32,
             nominal_hashrate=10_000.0,
             share_batch_size=3,

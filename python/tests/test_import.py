@@ -14,6 +14,8 @@ def test_import():
             Sv2Decoder, 
             Sv2Message, 
             SetupConnection,
+            Sv2ExtranonceAllocator,
+            Sv2ExtranoncePrefix,
             Sv2CodecError,
             Sv2MessageError
         )
@@ -26,4 +28,4 @@ def test_import():
 
 if __name__ == "__main__":
     success = test_import()
-    exit(0 if success else 1) 
+    exit(0 if success else 1)

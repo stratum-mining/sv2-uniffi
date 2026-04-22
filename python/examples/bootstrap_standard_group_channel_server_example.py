@@ -27,8 +27,8 @@ from sv2 import (
     Sv2StandardChannelServer,
     Sv2GroupChannelServer,
     Sv2ExtendedChannelServer,
-    Sv2ExtranoncePrefixFactoryExtended,
-    Sv2ExtranoncePrefixFactoryStandard,
+    Sv2ExtranonceAllocator,
+    sv2_extranonce_bytes_needed,
     OpenStandardMiningChannel,
     OpenStandardMiningChannelSuccess,
     OpenMiningChannelError,
@@ -40,17 +40,25 @@ from sv2 import (
 
 from itertools import count
 
-CLIENT_SEARCH_SPACE_BYTES = 20
-FULL_EXTRANONCE_SIZE = 32
+# Size of the static identifier for this pool server, placed at the start of the pool's
+# extranonce allocation. One byte covers up to 256 distinct pool servers.
+POOL_SERVER_BYTES = 1
+# Maximum number of concurrent channels the pool can allocate. Determines
+# `POOL_LOCAL_PREFIX_BYTES` via `sv2_extranonce_bytes_needed`. The internal
+# allocation bitmap uses `POOL_MAX_CHANNELS / 8` bytes of RAM.
+POOL_MAX_CHANNELS = 16_777_216
+# Bytes consumed by the per-channel `local_index`. Derived from
+# `POOL_MAX_CHANNELS` so the two stay in sync.
+POOL_LOCAL_PREFIX_BYTES = sv2_extranonce_bytes_needed(POOL_MAX_CHANNELS)
+POOL_ALLOCATION_BYTES = POOL_SERVER_BYTES + POOL_LOCAL_PREFIX_BYTES
+CLIENT_SEARCH_SPACE_BYTES = 16
+FULL_EXTRANONCE_SIZE = POOL_ALLOCATION_BYTES + CLIENT_SEARCH_SPACE_BYTES
 
 
 # Class that illustrates the context of a Mining Server
 class MiningServerContext:
-    # a factory to generate unique Extranonce Prefixes for Extended Channels
-    extranonce_prefix_factory_extended: Sv2ExtranoncePrefixFactoryExtended
-    # a factory to generate unique Extranonce Prefixes for Standard Channels
-    # this is not really used on this example, but it's good to have it
-    extranonce_prefix_factory_standard: Sv2ExtranoncePrefixFactoryStandard
+    # a unified allocator to generate unique Extranonce Prefixes for downstream channels
+    extranonce_allocator: Sv2ExtranonceAllocator
     # a cached future template
     cached_future_template: NewTemplate
     # a cached set_new_prev_hash_tdp
@@ -67,8 +75,8 @@ class MiningServerContext:
     # script pubkey to be used for coinbase reward output paying to the pool
     pool_payout_script_pubkey: bytes
 
-    # static_prefix is a bytes array that is used to guarantee unique search space allocation across different Mining Servers
-    # it is recommended to use a different static_prefix for each Mining Server
+    # static_prefix is the one-byte identifier for this specific pool server.
+    # It must fit within `POOL_SERVER_BYTES`.
     def __init__(
         self,
         static_prefix: bytes,
@@ -80,17 +88,12 @@ class MiningServerContext:
         pool_tag_string: str,
         pool_payout_script_pubkey: bytes,
     ):
-        # reserve the non-client portion of the extranonce for pool-managed allocation
-        # and expose CLIENT_SEARCH_SPACE_BYTES bytes for clients to roll during mining
-        self.extranonce_prefix_factory_extended = Sv2ExtranoncePrefixFactoryExtended(
-            allocation_size=FULL_EXTRANONCE_SIZE - CLIENT_SEARCH_SPACE_BYTES,
-            rollable_size=CLIENT_SEARCH_SPACE_BYTES,
-            static_prefix=static_prefix,
-        )
-
-        # a factory to generate unique Extranonce Prefixes for Standard Channels
-        self.extranonce_prefix_factory_standard = Sv2ExtranoncePrefixFactoryStandard(
-            static_prefix=static_prefix
+        # reserve the non-client portion of the extranonce for pool-managed allocation,
+        # and expose CLIENT_SEARCH_SPACE_BYTES bytes for clients to roll during mining.
+        self.extranonce_allocator = Sv2ExtranonceAllocator(
+            local_prefix_bytes=static_prefix,
+            total_extranonce_len=FULL_EXTRANONCE_SIZE,
+            max_channels=POOL_MAX_CHANNELS,
         )
         # we're setting one on this constructor, but these are continuously cached as they are sent from the Template Provider
         self.cached_future_template = cached_future_template
@@ -165,8 +168,8 @@ class ConnectionContext:
 
             # bootstrap the channel state with the cached future template
             self.group_channel.on_new_template(
-                template=mining_server_context.cached_future_template,
-                coinbase_reward_outputs=coinbase_reward_outputs,
+                mining_server_context.cached_future_template,
+                coinbase_reward_outputs,
             )
 
             # activate the future job locally with the cached set_new_prev_hash_tdp
@@ -199,9 +202,7 @@ def bootstrap_standard_channel_server(
             )
         ]
 
-    extranonce_prefix = (
-        mining_server_context.extranonce_prefix_factory_standard.next_extranonce_prefix()
-    )
+    extranonce_prefix = mining_server_context.extranonce_allocator.allocate_standard()
 
     try:
         new_standard_channel = Sv2StandardChannelServer(
@@ -277,8 +278,8 @@ def bootstrap_standard_channel_server(
 
     # bootstrap the channel state with the cached future template
     new_standard_channel.on_new_template(
-        template=mining_server_context.cached_future_template,
-        coinbase_reward_outputs=coinbase_reward_outputs,
+        mining_server_context.cached_future_template,
+        coinbase_reward_outputs,
     )
 
     # get the job id for the future job

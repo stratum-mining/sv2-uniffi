@@ -12,7 +12,7 @@ from sv2 import (
     Sv2Message,
     SetupConnection,
     Sv2CodecError,
-    Sv2MessagesError
+    Sv2MessageError,
 )
 
 __all__ = [
@@ -22,7 +22,7 @@ __all__ = [
     'Sv2Message',
     'SetupConnection',
     'Sv2CodecError',
-    'Sv2MessagesError'
+    'Sv2MessageError'
 ]
 
 __version__ = '0.1.0' 
