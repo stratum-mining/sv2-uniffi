@@ -12,6 +12,7 @@ use channels_sv2::server::{
 };
 use std::{convert::TryInto, sync::Mutex};
 
+use crate::channels::extranonce::prefix::Sv2ExtranoncePrefix;
 use crate::channels::server::error::Sv2ServerStandardChannelError;
 use crate::channels::server::jobs::extended::Sv2ExtendedJob;
 use crate::channels::server::jobs::standard::Sv2StandardJob;
@@ -40,7 +41,7 @@ impl Sv2StandardChannelServer {
     pub fn new(
         channel_id: u32,
         user_identity: String,
-        extranonce_prefix: Vec<u8>,
+        extranonce_prefix: Arc<Sv2ExtranoncePrefix>,
         max_target: Vec<u8>,
         nominal_hashrate: f32,
         share_batch_size: u32,
@@ -52,6 +53,9 @@ impl Sv2StandardChannelServer {
             .map_err(|_| Sv2ServerStandardChannelError::BadMaxTarget)?;
         let max_target = Target::from_le_bytes(max_target);
         let job_store = DefaultJobStore::new();
+        let extranonce_prefix = extranonce_prefix
+            .take_inner()
+            .map_err(|_| Sv2ServerStandardChannelError::FailedToConsumeExtranoncePrefix)?;
 
         let inner = StandardChannel::new_for_pool(
             channel_id,
@@ -398,12 +402,15 @@ impl Sv2StandardChannelServer {
 
     pub fn set_extranonce_prefix(
         &self,
-        extranonce_prefix: Vec<u8>,
+        extranonce_prefix: Arc<Sv2ExtranoncePrefix>,
     ) -> Result<(), Sv2ServerStandardChannelError> {
         let mut channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
+        let extranonce_prefix = extranonce_prefix
+            .take_inner()
+            .map_err(|_| Sv2ServerStandardChannelError::FailedToConsumeExtranoncePrefix)?;
         channel
             .set_extranonce_prefix(extranonce_prefix)
             .map_err(|_| Sv2ServerStandardChannelError::ExtranoncePrefixTooLarge)

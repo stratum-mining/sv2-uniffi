@@ -1,7 +1,6 @@
 mod chain_tip;
 mod error;
 mod extended;
-mod extranonce_prefix;
 mod group;
 mod jobs;
 mod share_accounting;

@@ -16,6 +16,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::channels::extranonce::prefix::Sv2ExtranoncePrefix;
 use crate::channels::server::error::Sv2ServerExtendedChannelError;
 use crate::channels::server::jobs::extended::Sv2ExtendedJob;
 use crate::channels::server::share_accounting::{
@@ -41,7 +42,7 @@ impl Sv2ExtendedChannelServer {
     pub fn new(
         channel_id: u32,
         user_identity: String,
-        extranonce_prefix: Vec<u8>,
+        extranonce_prefix: Arc<Sv2ExtranoncePrefix>,
         max_target: Vec<u8>,
         nominal_hashrate: f32,
         version_rolling_allowed: bool,
@@ -55,6 +56,9 @@ impl Sv2ExtendedChannelServer {
             .map_err(|_| Sv2ServerExtendedChannelError::BadMaxTarget)?;
         let max_target = Target::from_le_bytes(max_target);
         let job_store = DefaultJobStore::new();
+        let extranonce_prefix = extranonce_prefix
+            .take_inner()
+            .map_err(|_| Sv2ServerExtendedChannelError::FailedToConsumeExtranoncePrefix)?;
 
         let channel = ExtendedChannel::new_for_pool(
             channel_id,
@@ -72,9 +76,6 @@ impl Sv2ExtendedChannelServer {
         .map_err(|e| match e {
             ExtendedChannelError::InvalidNominalHashrate => {
                 Sv2ServerExtendedChannelError::InvalidNominalHashrate
-            }
-            ExtendedChannelError::RequestedMaxTargetOutOfRange => {
-                Sv2ServerExtendedChannelError::RequestedMaxTargetOutOfRange
             }
             ExtendedChannelError::RequestedMinExtranonceSizeTooLarge => {
                 Sv2ServerExtendedChannelError::RequestedMinExtranonceSizeTooLarge
@@ -270,7 +271,7 @@ impl Sv2ExtendedChannelServer {
             .inner
             .lock()
             .map_err(|_| Sv2ServerExtendedChannelError::LockError)?;
-        Ok(channel.get_extranonce_prefix().clone())
+        Ok(channel.get_extranonce_prefix().to_vec())
     }
 
     pub fn get_rollable_extranonce_size(&self) -> Result<u16, Sv2ServerExtendedChannelError> {
@@ -424,12 +425,15 @@ impl Sv2ExtendedChannelServer {
 
     pub fn set_extranonce_prefix(
         &self,
-        extranonce_prefix: Vec<u8>,
+        extranonce_prefix: Arc<Sv2ExtranoncePrefix>,
     ) -> Result<(), Sv2ServerExtendedChannelError> {
         let mut channel = self
             .inner
             .lock()
             .map_err(|_| Sv2ServerExtendedChannelError::LockError)?;
+        let extranonce_prefix = extranonce_prefix
+            .take_inner()
+            .map_err(|_| Sv2ServerExtendedChannelError::FailedToConsumeExtranoncePrefix)?;
         channel
             .set_extranonce_prefix(extranonce_prefix)
             .map_err(|_| Sv2ServerExtendedChannelError::ExtranoncePrefixTooLarge)
