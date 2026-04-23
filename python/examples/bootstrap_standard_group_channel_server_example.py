@@ -220,8 +220,6 @@ def bootstrap_standard_channel_server(
 
         if "InvalidNominalHashrate" in error_type:
             error_code = "invalid-nominal-hashrate"
-        if "RequestedMaxTargetOutOfRange" in error_type:
-            error_code = "max-target-out-of-range"
         if "FailedToCreateStandardChannel" in error_type:
             error_code = "other-error"
 

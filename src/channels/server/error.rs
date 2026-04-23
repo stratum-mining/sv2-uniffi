@@ -7,7 +7,6 @@ pub enum Sv2ServerExtendedChannelError {
     LockError,
     BadMaxTarget,
     InvalidNominalHashrate,
-    RequestedMaxTargetOutOfRange,
     RequestedMinExtranonceSizeTooLarge,
     FailedToConvertMessage(Sv2MessageError),
     FailedToCreateExtendedChannel,

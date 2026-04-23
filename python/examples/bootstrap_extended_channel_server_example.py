@@ -212,8 +212,6 @@ def bootstrap_extended_channel_server(
 
         if "InvalidNominalHashrate" in error_type:
             error_code = "invalid-nominal-hashrate"
-        if "RequestedMaxTargetOutOfRange" in error_type:
-            error_code = "max-target-out-of-range"
         if "RequestedMinExtranonceSizeTooLarge" in error_type:
             error_code = "min-extranonce-size-too-large"
         if "FailedToCreateExtendedChannel" in error_type:

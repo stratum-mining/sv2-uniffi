@@ -73,6 +73,20 @@ def test_share_accounting():
         _assert_initial_accounting(extended_channel.get_share_accounting(), 2)
         _assert_initial_accounting(standard_channel.get_share_accounting(), 3)
 
+        not_so_permissive_max_target = (b"\xff" * 31) + b"\x00"
+
+        extended_channel.update_channel(0.1, not_so_permissive_max_target)
+        if extended_channel.get_target() != not_so_permissive_max_target:
+            raise Exception("extended channel target was not clamped to max target")
+        if extended_channel.get_requested_max_target() != not_so_permissive_max_target:
+            raise Exception("extended channel requested max target was not updated")
+
+        standard_channel.update_channel(0.1, not_so_permissive_max_target)
+        if standard_channel.get_target() != not_so_permissive_max_target:
+            raise Exception("standard channel target was not clamped to max target")
+        if standard_channel.get_requested_max_target() != not_so_permissive_max_target:
+            raise Exception("standard channel requested max target was not updated")
+
         print("✓ Share accounting test passed")
         return True
 
