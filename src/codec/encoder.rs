@@ -37,8 +37,8 @@ impl Sv2Encoder {
     ) -> Result<Vec<u8>, Sv2CodecError> {
         let mut inner_encoder = self.inner.lock().map_err(|_| Sv2CodecError::LockError)?;
 
-        let inner_message =
-            sv2_message_to_inner(message).map_err(Sv2CodecError::Sv2MessagesError)?;
+        let inner_message = sv2_message_to_inner(message)
+            .map_err(|error| Sv2CodecError::Sv2MessagesError { error })?;
 
         let message_frame: StandardEitherFrame<InnerAnyMessage<'static>> = inner_message
             .try_into()

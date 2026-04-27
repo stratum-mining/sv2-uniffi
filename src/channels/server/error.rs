@@ -8,7 +8,7 @@ pub enum Sv2ServerExtendedChannelError {
     BadMaxTarget,
     InvalidNominalHashrate,
     RequestedMinExtranonceSizeTooLarge,
-    FailedToConvertMessage(Sv2MessageError),
+    FailedToConvertMessage { error: Sv2MessageError },
     FailedToCreateExtendedChannel,
     FailedToConsumeExtranoncePrefix,
     FailedToUpdateChannel,
@@ -46,7 +46,7 @@ pub enum Sv2ServerStandardChannelError {
     MessageIsNotSubmitSharesStandard,
     MessageIsNotNewMiningJob,
     FailedToProcessNewPrevHash,
-    FailedToConvertMessage(Sv2MessageError),
+    FailedToConvertMessage { error: Sv2MessageError },
     FailedToProcessNewTemplate,
     ShareValidationError(ShareValidationError),
     FailedToGetActiveJob,
@@ -68,7 +68,7 @@ pub enum Sv2ServerGroupChannelError {
     MessageIsNotNewTemplate,
     MessageIsNotSetNewPrevHash,
     FailedToProcessNewTemplate,
-    FailedToConvertMessage(Sv2MessageError),
+    FailedToConvertMessage { error: Sv2MessageError },
     FailedToProcessNewPrevHash,
 }
 

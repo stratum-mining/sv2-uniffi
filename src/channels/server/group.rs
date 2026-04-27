@@ -81,8 +81,10 @@ impl Sv2GroupChannelServer {
             .map(|output| output.to_txout())
             .collect();
 
-        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(new_template))
-            .map_err(Sv2ServerGroupChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate {
+            message: new_template,
+        })
+        .map_err(|error| Sv2ServerGroupChannelError::FailedToConvertMessage { error })?;
 
         let inner_template = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -105,10 +107,10 @@ impl Sv2GroupChannelServer {
             .inner
             .lock()
             .map_err(|_| Sv2ServerGroupChannelError::LockError)?;
-        let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution(
-            set_new_prev_hash,
-        ))
-        .map_err(Sv2ServerGroupChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution {
+            message: set_new_prev_hash,
+        })
+        .map_err(|error| Sv2ServerGroupChannelError::FailedToConvertMessage { error })?;
 
         let inner_set_new_prev_hash = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -152,7 +154,7 @@ impl Sv2GroupChannelServer {
             inner_job_message.clone(),
         )));
         let job_message = match job_message {
-            Sv2Message::NewExtendedMiningJob(job) => job,
+            Sv2Message::NewExtendedMiningJob { message: job } => job,
             _ => return Err(Sv2ServerGroupChannelError::MessageIsNotNewExtendedMiningJob),
         };
         Ok(job_message)
@@ -174,7 +176,7 @@ impl Sv2GroupChannelServer {
                     Mining::NewExtendedMiningJob(job_message.clone()),
                 ));
                 let job_message = match job_message {
-                    Sv2Message::NewExtendedMiningJob(job) => job,
+                    Sv2Message::NewExtendedMiningJob { message: job } => job,
                     _ => return Err(Sv2ServerGroupChannelError::MessageIsNotNewExtendedMiningJob),
                 };
                 Ok(job_message)

@@ -126,8 +126,10 @@ impl Sv2ExtendedChannelServer {
             .map(|output| output.to_txout())
             .collect();
 
-        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(new_template))
-            .map_err(Sv2ServerExtendedChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate {
+            message: new_template,
+        })
+        .map_err(|error| Sv2ServerExtendedChannelError::FailedToConvertMessage { error })?;
 
         let inner_template = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -150,10 +152,10 @@ impl Sv2ExtendedChannelServer {
             .inner
             .lock()
             .map_err(|_| Sv2ServerExtendedChannelError::LockError)?;
-        let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution(
-            set_new_prev_hash,
-        ))
-        .map_err(Sv2ServerExtendedChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution {
+            message: set_new_prev_hash,
+        })
+        .map_err(|error| Sv2ServerExtendedChannelError::FailedToConvertMessage { error })?;
 
         let inner_set_new_prev_hash = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -177,9 +179,10 @@ impl Sv2ExtendedChannelServer {
             .lock()
             .map_err(|_| Sv2ServerExtendedChannelError::LockError)?;
 
-        let any_message =
-            sv2_message_to_inner(Sv2Message::SetCustomMiningJob(set_custom_mining_job))
-                .map_err(Sv2ServerExtendedChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::SetCustomMiningJob {
+            message: set_custom_mining_job,
+        })
+        .map_err(|error| Sv2ServerExtendedChannelError::FailedToConvertMessage { error })?;
 
         let inner_set_custom_mining_job = match any_message {
             parsers_sv2::AnyMessage::Mining(parsers_sv2::Mining::SetCustomMiningJob(
@@ -203,8 +206,8 @@ impl Sv2ExtendedChannelServer {
             .lock()
             .map_err(|_| Sv2ServerExtendedChannelError::LockError)?;
 
-        let any_message = sv2_message_to_inner(Sv2Message::SubmitSharesExtended(share))
-            .map_err(Sv2ServerExtendedChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::SubmitSharesExtended { message: share })
+            .map_err(|error| Sv2ServerExtendedChannelError::FailedToConvertMessage { error })?;
 
         let inner_share = match any_message {
             parsers_sv2::AnyMessage::Mining(parsers_sv2::Mining::SubmitSharesExtended(share)) => {
@@ -216,18 +219,26 @@ impl Sv2ExtendedChannelServer {
         let result = channel.validate_share(inner_share);
 
         match result {
-            Ok(InnerShareValidationResult::Valid(hash)) => {
-                Ok(ShareValidationResult::Valid(hash[..].to_vec()))
+            Ok(InnerShareValidationResult::Valid(hash)) => Ok(ShareValidationResult::Valid {
+                share_hash: hash[..].to_vec(),
+            }),
+            Ok(InnerShareValidationResult::BlockFound(share_hash, template_id, coinbase)) => {
+                Ok(ShareValidationResult::BlockFound {
+                    share_hash: share_hash[..].to_vec(),
+                    template_id,
+                    coinbase,
+                })
             }
-            Ok(InnerShareValidationResult::BlockFound(share_hash, template_id, coinbase)) => Ok(
-                ShareValidationResult::BlockFound(share_hash[..].to_vec(), template_id, coinbase),
-            ),
-            Err(InnerShareValidationError::Invalid) => Err(
-                Sv2ServerExtendedChannelError::ShareValidationError(ShareValidationError::Invalid),
-            ),
-            Err(InnerShareValidationError::Stale) => Err(
-                Sv2ServerExtendedChannelError::ShareValidationError(ShareValidationError::Stale),
-            ),
+            Err(InnerShareValidationError::Invalid) => {
+                Err(Sv2ServerExtendedChannelError::ShareValidationError(
+                    ShareValidationError::Invalid,
+                ))
+            }
+            Err(InnerShareValidationError::Stale) => {
+                Err(Sv2ServerExtendedChannelError::ShareValidationError(
+                    ShareValidationError::Stale,
+                ))
+            }
             Err(InnerShareValidationError::InvalidJobId) => {
                 Err(Sv2ServerExtendedChannelError::ShareValidationError(
                     ShareValidationError::InvalidJobId,

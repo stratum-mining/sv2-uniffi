@@ -44,7 +44,7 @@ impl Sv2ExtendedJob {
             job_message.clone(),
         )));
         let job_message = match job_message {
-            Sv2Message::NewExtendedMiningJob(job) => job,
+            Sv2Message::NewExtendedMiningJob { message: job } => job,
             _ => return Err(Sv2ExtendedJobError::MessageIsNotNewExtendedMiningJob),
         };
         Ok(job_message)
@@ -62,20 +62,24 @@ impl Sv2ExtendedJob {
                     TemplateDistribution::NewTemplate(template.clone()),
                 ));
                 let new_template_message = match new_template_message {
-                    Sv2Message::NewTemplate(template) => template,
+                    Sv2Message::NewTemplate { message: template } => template,
                     _ => return Err(Sv2ExtendedJobError::MessageIsNotNewTemplate),
                 };
-                Sv2ExtendedJobOrigin::NewTemplate(new_template_message)
+                Sv2ExtendedJobOrigin::NewTemplate {
+                    new_template: new_template_message,
+                }
             }
             JobOrigin::SetCustomMiningJob(job) => {
                 let set_custom_mining_job_message = inner_to_sv2_message(&AnyMessage::Mining(
                     Mining::SetCustomMiningJob(job.clone()),
                 ));
                 let set_custom_mining_job_message = match set_custom_mining_job_message {
-                    Sv2Message::SetCustomMiningJob(job) => job,
+                    Sv2Message::SetCustomMiningJob { message: job } => job,
                     _ => return Err(Sv2ExtendedJobError::MessageIsNotSetCustomMiningJob),
                 };
-                Sv2ExtendedJobOrigin::SetCustomMiningJob(set_custom_mining_job_message)
+                Sv2ExtendedJobOrigin::SetCustomMiningJob {
+                    set_custom_mining_job: set_custom_mining_job_message,
+                }
             }
         };
         Ok(job_origin)
@@ -113,6 +117,10 @@ impl Sv2ExtendedJob {
 
 #[derive(uniffi::Enum)]
 pub enum Sv2ExtendedJobOrigin {
-    NewTemplate(NewTemplate),
-    SetCustomMiningJob(SetCustomMiningJob),
+    NewTemplate {
+        new_template: NewTemplate,
+    },
+    SetCustomMiningJob {
+        set_custom_mining_job: SetCustomMiningJob,
+    },
 }

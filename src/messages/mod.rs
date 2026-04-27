@@ -76,54 +76,142 @@ use std::convert::{TryFrom, TryInto};
 #[derive(uniffi::Enum)]
 pub enum Sv2Message {
     // common messages
-    SetupConnection(SetupConnection),
-    SetupConnectionSuccess(SetupConnectionSuccess),
-    SetupConnectionError(SetupConnectionError),
-    ChannelEndpointChanged(ChannelEndpointChanged),
-    Reconnect(Reconnect),
+    SetupConnection {
+        message: SetupConnection,
+    },
+    SetupConnectionSuccess {
+        message: SetupConnectionSuccess,
+    },
+    SetupConnectionError {
+        message: SetupConnectionError,
+    },
+    ChannelEndpointChanged {
+        message: ChannelEndpointChanged,
+    },
+    Reconnect {
+        message: Reconnect,
+    },
     // mining subprotocol messages
-    OpenStandardMiningChannel(OpenStandardMiningChannel),
-    OpenStandardMiningChannelSuccess(OpenStandardMiningChannelSuccess),
-    OpenExtendedMiningChannel(OpenExtendedMiningChannel),
-    OpenExtendedMiningChannelSuccess(OpenExtendedMiningChannelSuccess),
-    OpenMiningChannelError(OpenMiningChannelError),
-    UpdateChannel(UpdateChannel),
-    UpdateChannelError(UpdateChannelError),
-    CloseChannel(CloseChannel),
-    SetExtranoncePrefix(SetExtranoncePrefix),
-    SubmitSharesStandard(SubmitSharesStandard),
-    SubmitSharesExtended(SubmitSharesExtended),
-    SubmitSharesSuccess(SubmitSharesSuccess),
-    SubmitSharesError(SubmitSharesError),
-    NewMiningJob(NewMiningJob),
-    NewExtendedMiningJob(NewExtendedMiningJob),
-    SetNewPrevHashMining(SetNewPrevHashMining),
-    SetCustomMiningJob(SetCustomMiningJob),
-    SetCustomMiningJobSuccess(SetCustomMiningJobSuccess),
-    SetCustomMiningJobError(SetCustomMiningJobError),
-    SetTarget(SetTarget),
-    SetGroupChannel(SetGroupChannel),
+    OpenStandardMiningChannel {
+        message: OpenStandardMiningChannel,
+    },
+    OpenStandardMiningChannelSuccess {
+        message: OpenStandardMiningChannelSuccess,
+    },
+    OpenExtendedMiningChannel {
+        message: OpenExtendedMiningChannel,
+    },
+    OpenExtendedMiningChannelSuccess {
+        message: OpenExtendedMiningChannelSuccess,
+    },
+    OpenMiningChannelError {
+        message: OpenMiningChannelError,
+    },
+    UpdateChannel {
+        message: UpdateChannel,
+    },
+    UpdateChannelError {
+        message: UpdateChannelError,
+    },
+    CloseChannel {
+        message: CloseChannel,
+    },
+    SetExtranoncePrefix {
+        message: SetExtranoncePrefix,
+    },
+    SubmitSharesStandard {
+        message: SubmitSharesStandard,
+    },
+    SubmitSharesExtended {
+        message: SubmitSharesExtended,
+    },
+    SubmitSharesSuccess {
+        message: SubmitSharesSuccess,
+    },
+    SubmitSharesError {
+        message: SubmitSharesError,
+    },
+    NewMiningJob {
+        message: NewMiningJob,
+    },
+    NewExtendedMiningJob {
+        message: NewExtendedMiningJob,
+    },
+    SetNewPrevHashMining {
+        message: SetNewPrevHashMining,
+    },
+    SetCustomMiningJob {
+        message: SetCustomMiningJob,
+    },
+    SetCustomMiningJobSuccess {
+        message: SetCustomMiningJobSuccess,
+    },
+    SetCustomMiningJobError {
+        message: SetCustomMiningJobError,
+    },
+    SetTarget {
+        message: SetTarget,
+    },
+    SetGroupChannel {
+        message: SetGroupChannel,
+    },
     // job declaration subprotocol messages
-    AllocateMiningJobToken(AllocateMiningJobToken),
-    AllocateMiningJobTokenSuccess(AllocateMiningJobTokenSuccess),
-    DeclareMiningJob(DeclareMiningJob),
-    DeclareMiningJobSuccess(DeclareMiningJobSuccess),
-    DeclareMiningJobError(DeclareMiningJobError),
-    ProvideMissingTransactions(ProvideMissingTransactions),
-    ProvideMissingTransactionsSuccess(ProvideMissingTransactionsSuccess),
-    PushSolution(PushSolution),
+    AllocateMiningJobToken {
+        message: AllocateMiningJobToken,
+    },
+    AllocateMiningJobTokenSuccess {
+        message: AllocateMiningJobTokenSuccess,
+    },
+    DeclareMiningJob {
+        message: DeclareMiningJob,
+    },
+    DeclareMiningJobSuccess {
+        message: DeclareMiningJobSuccess,
+    },
+    DeclareMiningJobError {
+        message: DeclareMiningJobError,
+    },
+    ProvideMissingTransactions {
+        message: ProvideMissingTransactions,
+    },
+    ProvideMissingTransactionsSuccess {
+        message: ProvideMissingTransactionsSuccess,
+    },
+    PushSolution {
+        message: PushSolution,
+    },
     // template distribution subprotocol messages
-    CoinbaseOutputConstraints(CoinbaseOutputConstraints),
-    NewTemplate(NewTemplate),
-    SetNewPrevHashTemplateDistribution(SetNewPrevHashTemplateDistribution),
-    RequestTransactionData(RequestTransactionData),
-    RequestTransactionDataSuccess(RequestTransactionDataSuccess),
-    RequestTransactionDataError(RequestTransactionDataError),
-    SubmitSolution(SubmitSolution),
+    CoinbaseOutputConstraints {
+        message: CoinbaseOutputConstraints,
+    },
+    NewTemplate {
+        message: NewTemplate,
+    },
+    SetNewPrevHashTemplateDistribution {
+        message: SetNewPrevHashTemplateDistribution,
+    },
+    RequestTransactionData {
+        message: RequestTransactionData,
+    },
+    RequestTransactionDataSuccess {
+        message: RequestTransactionDataSuccess,
+    },
+    RequestTransactionDataError {
+        message: RequestTransactionDataError,
+    },
+    SubmitSolution {
+        message: SubmitSolution,
+    },
     // Extension Messages
-    RequestExtensions(RequestExtensions),
-    RequestExtensionsSuccess(RequestExtensionsSuccess),
-    RequestExtensionsError(RequestExtensionsError),
+    RequestExtensions {
+        message: RequestExtensions,
+    },
+    RequestExtensionsSuccess {
+        message: RequestExtensionsSuccess,
+    },
+    RequestExtensionsError {
+        message: RequestExtensionsError,
+    },
 }
 
 /// Convert from UniFFI Sv2Message to internal InnerAnyMessage
@@ -131,7 +219,9 @@ pub fn sv2_message_to_inner(
     sv2_message: Sv2Message,
 ) -> Result<InnerAnyMessage<'static>, Sv2MessageError> {
     match sv2_message {
-        Sv2Message::SetupConnection(setup_connection) => {
+        Sv2Message::SetupConnection {
+            message: setup_connection,
+        } => {
             let protocol = InnerProtocol::try_from(setup_connection.protocol)
                 .map_err(|_| Sv2MessageError::FailedToConvertProtocol)?;
             let inner_setup_connection = InnerSetupConnection {
@@ -166,7 +256,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetupConnectionSuccess(setup_connection_success) => {
+        Sv2Message::SetupConnectionSuccess {
+            message: setup_connection_success,
+        } => {
             let inner_setup_connection_success = InnerSetupConnectionSuccess {
                 used_version: setup_connection_success.used_version,
                 flags: setup_connection_success.flags,
@@ -176,7 +268,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetupConnectionError(setup_connection_error) => {
+        Sv2Message::SetupConnectionError {
+            message: setup_connection_error,
+        } => {
             let inner_setup_connection_error = InnerSetupConnectionError {
                 flags: setup_connection_error.flags,
                 error_code: setup_connection_error
@@ -189,7 +283,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::ChannelEndpointChanged(channel_endpoint_changed) => {
+        Sv2Message::ChannelEndpointChanged {
+            message: channel_endpoint_changed,
+        } => {
             let inner_channel_endpoint_changed = InnerChannelEndpointChanged {
                 channel_id: channel_endpoint_changed.channel_id,
             };
@@ -198,7 +294,7 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::Reconnect(reconnect) => {
+        Sv2Message::Reconnect { message: reconnect } => {
             let inner_reconnect = InnerReconnect {
                 new_host: reconnect
                     .new_host
@@ -210,7 +306,9 @@ pub fn sv2_message_to_inner(
                 InnerAnyMessage::Common(InnerCommonMessages::Reconnect(inner_reconnect));
             Ok(inner_message.into_static())
         }
-        Sv2Message::OpenStandardMiningChannel(open_standard_mining_channel) => {
+        Sv2Message::OpenStandardMiningChannel {
+            message: open_standard_mining_channel,
+        } => {
             let max_target: [u8; 32] = open_standard_mining_channel
                 .max_target
                 .try_into()
@@ -229,7 +327,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::OpenStandardMiningChannelSuccess(open_standard_mining_channel_success) => {
+        Sv2Message::OpenStandardMiningChannelSuccess {
+            message: open_standard_mining_channel_success,
+        } => {
             let target: [u8; 32] = open_standard_mining_channel_success
                 .target
                 .try_into()
@@ -251,7 +351,9 @@ pub fn sv2_message_to_inner(
                 ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::OpenExtendedMiningChannel(open_extended_mining_channel) => {
+        Sv2Message::OpenExtendedMiningChannel {
+            message: open_extended_mining_channel,
+        } => {
             let max_target: [u8; 32] = open_extended_mining_channel
                 .max_target
                 .try_into()
@@ -271,7 +373,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::OpenExtendedMiningChannelSuccess(open_extended_mining_channel_success) => {
+        Sv2Message::OpenExtendedMiningChannelSuccess {
+            message: open_extended_mining_channel_success,
+        } => {
             let target: [u8; 32] = open_extended_mining_channel_success
                 .target
                 .try_into()
@@ -294,7 +398,9 @@ pub fn sv2_message_to_inner(
                 ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::OpenMiningChannelError(open_mining_channel_error) => {
+        Sv2Message::OpenMiningChannelError {
+            message: open_mining_channel_error,
+        } => {
             let inner_open_mining_channel_error = InnerOpenMiningChannelError {
                 request_id: open_mining_channel_error.request_id,
                 error_code: open_mining_channel_error
@@ -307,7 +413,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::UpdateChannel(update_channel) => {
+        Sv2Message::UpdateChannel {
+            message: update_channel,
+        } => {
             let maximum_target: [u8; 32] = update_channel
                 .maximum_target
                 .try_into()
@@ -321,7 +429,9 @@ pub fn sv2_message_to_inner(
                 InnerAnyMessage::Mining(InnerMiningMessages::UpdateChannel(inner_update_channel));
             Ok(inner_message.into_static())
         }
-        Sv2Message::UpdateChannelError(update_channel_error) => {
+        Sv2Message::UpdateChannelError {
+            message: update_channel_error,
+        } => {
             let inner_update_channel_error = InnerUpdateChannelError {
                 channel_id: update_channel_error.channel_id,
                 error_code: update_channel_error
@@ -334,7 +444,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::CloseChannel(close_channel) => {
+        Sv2Message::CloseChannel {
+            message: close_channel,
+        } => {
             let inner_close_channel = InnerCloseChannel {
                 channel_id: close_channel.channel_id,
                 reason_code: close_channel
@@ -346,7 +458,9 @@ pub fn sv2_message_to_inner(
                 InnerAnyMessage::Mining(InnerMiningMessages::CloseChannel(inner_close_channel));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetExtranoncePrefix(set_extranonce_prefix) => {
+        Sv2Message::SetExtranoncePrefix {
+            message: set_extranonce_prefix,
+        } => {
             let inner_set_extranonce_prefix = InnerSetExtranoncePrefix {
                 channel_id: set_extranonce_prefix.channel_id,
                 extranonce_prefix: set_extranonce_prefix
@@ -359,7 +473,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SubmitSharesStandard(submit_shares_standard) => {
+        Sv2Message::SubmitSharesStandard {
+            message: submit_shares_standard,
+        } => {
             let inner_submit_shares_standard = InnerSubmitSharesStandard {
                 channel_id: submit_shares_standard.channel_id,
                 sequence_number: submit_shares_standard.sequence_number,
@@ -373,7 +489,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SubmitSharesExtended(submit_shares_extended) => {
+        Sv2Message::SubmitSharesExtended {
+            message: submit_shares_extended,
+        } => {
             let inner_submit_shares_extended = InnerSubmitSharesExtended {
                 channel_id: submit_shares_extended.channel_id,
                 sequence_number: submit_shares_extended.sequence_number,
@@ -391,7 +509,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SubmitSharesSuccess(submit_shares_success) => {
+        Sv2Message::SubmitSharesSuccess {
+            message: submit_shares_success,
+        } => {
             let inner_submit_shares_success = InnerSubmitSharesSuccess {
                 channel_id: submit_shares_success.channel_id,
                 last_sequence_number: submit_shares_success.last_sequence_number,
@@ -403,7 +523,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SubmitSharesError(submit_shares_error) => {
+        Sv2Message::SubmitSharesError {
+            message: submit_shares_error,
+        } => {
             let inner_submit_shares_error = InnerSubmitSharesError {
                 channel_id: submit_shares_error.channel_id,
                 sequence_number: submit_shares_error.sequence_number,
@@ -417,7 +539,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::NewMiningJob(new_mining_job) => {
+        Sv2Message::NewMiningJob {
+            message: new_mining_job,
+        } => {
             let min_ntime = Sv2Option::new(new_mining_job.min_ntime);
             let inner_new_mining_job = InnerNewMiningJob {
                 channel_id: new_mining_job.channel_id,
@@ -433,7 +557,9 @@ pub fn sv2_message_to_inner(
                 InnerAnyMessage::Mining(InnerMiningMessages::NewMiningJob(inner_new_mining_job));
             Ok(inner_message.into_static())
         }
-        Sv2Message::NewExtendedMiningJob(new_extended_mining_job) => {
+        Sv2Message::NewExtendedMiningJob {
+            message: new_extended_mining_job,
+        } => {
             let merkle_path: Vec<_> = new_extended_mining_job
                 .merkle_path
                 .into_iter()
@@ -465,7 +591,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetNewPrevHashMining(set_new_prev_hash) => {
+        Sv2Message::SetNewPrevHashMining {
+            message: set_new_prev_hash,
+        } => {
             let inner_set_new_prev_hash = InnerSetNewPrevHashMp {
                 channel_id: set_new_prev_hash.channel_id,
                 job_id: set_new_prev_hash.job_id,
@@ -481,7 +609,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetCustomMiningJob(set_custom_mining_job) => {
+        Sv2Message::SetCustomMiningJob {
+            message: set_custom_mining_job,
+        } => {
             let merkle_path: Vec<_> = set_custom_mining_job
                 .merkle_path
                 .into_iter()
@@ -523,7 +653,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetCustomMiningJobSuccess(set_custom_mining_job_success) => {
+        Sv2Message::SetCustomMiningJobSuccess {
+            message: set_custom_mining_job_success,
+        } => {
             let inner_set_custom_mining_job_success = InnerSetCustomMiningJobSuccess {
                 channel_id: set_custom_mining_job_success.channel_id,
                 request_id: set_custom_mining_job_success.request_id,
@@ -534,7 +666,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetCustomMiningJobError(set_custom_mining_job_error) => {
+        Sv2Message::SetCustomMiningJobError {
+            message: set_custom_mining_job_error,
+        } => {
             let inner_set_custom_mining_job_error = InnerSetCustomMiningJobError {
                 channel_id: set_custom_mining_job_error.channel_id,
                 request_id: set_custom_mining_job_error.request_id,
@@ -548,7 +682,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetTarget(set_target) => {
+        Sv2Message::SetTarget {
+            message: set_target,
+        } => {
             let inner_set_target = InnerSetTarget {
                 channel_id: set_target.channel_id,
                 maximum_target: set_target
@@ -560,7 +696,9 @@ pub fn sv2_message_to_inner(
                 InnerAnyMessage::Mining(InnerMiningMessages::SetTarget(inner_set_target));
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetGroupChannel(set_group_channel) => {
+        Sv2Message::SetGroupChannel {
+            message: set_group_channel,
+        } => {
             let inner_set_group_channel = InnerSetGroupChannel {
                 group_channel_id: set_group_channel.group_channel_id,
                 channel_ids: set_group_channel.channel_ids.into(),
@@ -570,7 +708,9 @@ pub fn sv2_message_to_inner(
             ));
             Ok(inner_message.into_static())
         }
-        Sv2Message::CoinbaseOutputConstraints(coinbase_output_constraints) => {
+        Sv2Message::CoinbaseOutputConstraints {
+            message: coinbase_output_constraints,
+        } => {
             let inner_coinbase_output_constraints = InnerCoinbaseOutputConstraints {
                 coinbase_output_max_additional_size: coinbase_output_constraints
                     .coinbase_output_max_additional_size,
@@ -584,7 +724,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::NewTemplate(new_template) => {
+        Sv2Message::NewTemplate {
+            message: new_template,
+        } => {
             let merkle_path: Vec<_> = new_template
                 .merkle_path
                 .into_iter()
@@ -618,7 +760,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::SetNewPrevHashTemplateDistribution(set_new_prev_hash_template_distribution) => {
+        Sv2Message::SetNewPrevHashTemplateDistribution {
+            message: set_new_prev_hash_template_distribution,
+        } => {
             let inner_set_new_prev_hash_template_distribution =
                 InnerSetNewPrevHashTemplateDistribution {
                     template_id: set_new_prev_hash_template_distribution.template_id,
@@ -640,7 +784,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::RequestTransactionData(request_transaction_data) => {
+        Sv2Message::RequestTransactionData {
+            message: request_transaction_data,
+        } => {
             let inner_request_transaction_data = InnerRequestTransactionData {
                 template_id: request_transaction_data.template_id,
             };
@@ -651,7 +797,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::RequestTransactionDataSuccess(request_transaction_data_success) => {
+        Sv2Message::RequestTransactionDataSuccess {
+            message: request_transaction_data_success,
+        } => {
             let transaction_list: Vec<_> = request_transaction_data_success
                 .transaction_list
                 .into_iter()
@@ -676,7 +824,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::RequestTransactionDataError(request_transaction_data_error) => {
+        Sv2Message::RequestTransactionDataError {
+            message: request_transaction_data_error,
+        } => {
             let inner_request_transaction_data_error = InnerRequestTransactionDataError {
                 template_id: request_transaction_data_error.template_id,
                 error_code: request_transaction_data_error
@@ -691,7 +841,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::SubmitSolution(submit_solution) => {
+        Sv2Message::SubmitSolution {
+            message: submit_solution,
+        } => {
             let inner_submit_solution = InnerSubmitSolution {
                 template_id: submit_solution.template_id,
                 version: submit_solution.version,
@@ -707,7 +859,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::AllocateMiningJobToken(allocate_mining_job_token) => {
+        Sv2Message::AllocateMiningJobToken {
+            message: allocate_mining_job_token,
+        } => {
             let inner_allocate_mining_job_token = InnerAllocateMiningJobToken {
                 user_identifier: allocate_mining_job_token
                     .user_identifier
@@ -722,7 +876,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::AllocateMiningJobTokenSuccess(allocate_mining_job_token_success) => {
+        Sv2Message::AllocateMiningJobTokenSuccess {
+            message: allocate_mining_job_token_success,
+        } => {
             let inner_allocate_mining_job_token_success = InnerAllocateMiningJobTokenSuccess {
                 request_id: allocate_mining_job_token_success.request_id,
                 mining_job_token: allocate_mining_job_token_success
@@ -741,7 +897,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::DeclareMiningJob(declare_mining_job) => {
+        Sv2Message::DeclareMiningJob {
+            message: declare_mining_job,
+        } => {
             let tx_ids_list: Vec<_> = declare_mining_job
                 .wtxid_list
                 .into_iter()
@@ -778,7 +936,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::DeclareMiningJobSuccess(declare_mining_job_success) => {
+        Sv2Message::DeclareMiningJobSuccess {
+            message: declare_mining_job_success,
+        } => {
             let inner_declare_mining_job_success = InnerDeclareMiningJobSuccess {
                 request_id: declare_mining_job_success.request_id,
                 new_mining_job_token: declare_mining_job_success
@@ -793,7 +953,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::DeclareMiningJobError(declare_mining_job_error) => {
+        Sv2Message::DeclareMiningJobError {
+            message: declare_mining_job_error,
+        } => {
             let inner_declare_mining_job_error = InnerDeclareMiningJobError {
                 request_id: declare_mining_job_error.request_id,
                 error_code: declare_mining_job_error
@@ -810,7 +972,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::ProvideMissingTransactions(provide_missing_transactions) => {
+        Sv2Message::ProvideMissingTransactions {
+            message: provide_missing_transactions,
+        } => {
             let inner_provide_missing_transactions = InnerProvideMissingTransactions {
                 request_id: provide_missing_transactions.request_id,
                 unknown_tx_position_list: provide_missing_transactions
@@ -824,7 +988,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::ProvideMissingTransactionsSuccess(provide_missing_transactions_success) => {
+        Sv2Message::ProvideMissingTransactionsSuccess {
+            message: provide_missing_transactions_success,
+        } => {
             let transaction_list: Vec<_> = provide_missing_transactions_success
                 .transaction_list
                 .into_iter()
@@ -845,7 +1011,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::PushSolution(push_solution) => {
+        Sv2Message::PushSolution {
+            message: push_solution,
+        } => {
             let inner_push_solution = InnerPushSolution {
                 extranonce: push_solution
                     .extranonce
@@ -865,7 +1033,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::RequestExtensions(request_extension) => {
+        Sv2Message::RequestExtensions {
+            message: request_extension,
+        } => {
             let inner_request_extension =
                 InnerExtensionsNegotiation::RequestExtensions(InnerRequestExtensions {
                     request_id: request_extension.request_id,
@@ -876,7 +1046,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::RequestExtensionsSuccess(request_extension_success) => {
+        Sv2Message::RequestExtensionsSuccess {
+            message: request_extension_success,
+        } => {
             let inner_request_extension = InnerExtensionsNegotiation::RequestExtensionsSuccess(
                 InnerRequestExtensionSuccess {
                     request_id: request_extension_success.request_id,
@@ -888,7 +1060,9 @@ pub fn sv2_message_to_inner(
             );
             Ok(inner_message.into_static())
         }
-        Sv2Message::RequestExtensionsError(request_extension_error) => {
+        Sv2Message::RequestExtensionsError {
+            message: request_extension_error,
+        } => {
             let inner_request_extension =
                 InnerExtensionsNegotiation::RequestExtensionsError(InnerRequestExtensionsError {
                     request_id: request_extension_error.request_id,
@@ -907,54 +1081,68 @@ pub fn sv2_message_to_inner(
 pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
     match inner {
         InnerAnyMessage::Common(InnerCommonMessages::SetupConnection(inner_setup_connection)) => {
-            Sv2Message::SetupConnection(SetupConnection {
-                protocol: inner_setup_connection.protocol as u8,
-                min_version: inner_setup_connection.min_version,
-                max_version: inner_setup_connection.max_version,
-                flags: inner_setup_connection.flags,
-                endpoint_host: String::from_utf8_lossy(
-                    inner_setup_connection.endpoint_host.inner_as_ref(),
-                )
-                .to_string(),
-                endpoint_port: inner_setup_connection.endpoint_port,
-                vendor: String::from_utf8_lossy(inner_setup_connection.vendor.inner_as_ref())
+            Sv2Message::SetupConnection {
+                message: SetupConnection {
+                    protocol: inner_setup_connection.protocol as u8,
+                    min_version: inner_setup_connection.min_version,
+                    max_version: inner_setup_connection.max_version,
+                    flags: inner_setup_connection.flags,
+                    endpoint_host: String::from_utf8_lossy(
+                        inner_setup_connection.endpoint_host.inner_as_ref(),
+                    )
                     .to_string(),
-                hardware_version: String::from_utf8_lossy(
-                    inner_setup_connection.hardware_version.inner_as_ref(),
-                )
-                .to_string(),
-                firmware: String::from_utf8_lossy(inner_setup_connection.firmware.inner_as_ref())
+                    endpoint_port: inner_setup_connection.endpoint_port,
+                    vendor: String::from_utf8_lossy(inner_setup_connection.vendor.inner_as_ref())
+                        .to_string(),
+                    hardware_version: String::from_utf8_lossy(
+                        inner_setup_connection.hardware_version.inner_as_ref(),
+                    )
                     .to_string(),
-                device_id: String::from_utf8_lossy(inner_setup_connection.device_id.inner_as_ref())
+                    firmware: String::from_utf8_lossy(
+                        inner_setup_connection.firmware.inner_as_ref(),
+                    )
                     .to_string(),
-            })
+                    device_id: String::from_utf8_lossy(
+                        inner_setup_connection.device_id.inner_as_ref(),
+                    )
+                    .to_string(),
+                },
+            }
         }
         InnerAnyMessage::Common(InnerCommonMessages::SetupConnectionSuccess(
             inner_setup_connection_success,
-        )) => Sv2Message::SetupConnectionSuccess(SetupConnectionSuccess {
-            used_version: inner_setup_connection_success.used_version,
-            flags: inner_setup_connection_success.flags,
-        }),
+        )) => Sv2Message::SetupConnectionSuccess {
+            message: SetupConnectionSuccess {
+                used_version: inner_setup_connection_success.used_version,
+                flags: inner_setup_connection_success.flags,
+            },
+        },
         InnerAnyMessage::Common(InnerCommonMessages::SetupConnectionError(
             inner_setup_connection_error,
-        )) => Sv2Message::SetupConnectionError(SetupConnectionError {
-            flags: inner_setup_connection_error.flags,
-            error_code: String::from_utf8_lossy(
-                inner_setup_connection_error.error_code.inner_as_ref(),
-            )
-            .to_string(),
-        }),
+        )) => Sv2Message::SetupConnectionError {
+            message: SetupConnectionError {
+                flags: inner_setup_connection_error.flags,
+                error_code: String::from_utf8_lossy(
+                    inner_setup_connection_error.error_code.inner_as_ref(),
+                )
+                .to_string(),
+            },
+        },
         InnerAnyMessage::Common(InnerCommonMessages::ChannelEndpointChanged(
             inner_channel_endpoint_changed,
-        )) => Sv2Message::ChannelEndpointChanged(ChannelEndpointChanged {
-            channel_id: inner_channel_endpoint_changed.channel_id,
-        }),
+        )) => Sv2Message::ChannelEndpointChanged {
+            message: ChannelEndpointChanged {
+                channel_id: inner_channel_endpoint_changed.channel_id,
+            },
+        },
         InnerAnyMessage::Common(InnerCommonMessages::Reconnect(inner_reconnect)) => {
-            Sv2Message::Reconnect(Reconnect {
-                new_host: String::from_utf8_lossy(inner_reconnect.new_host.inner_as_ref())
-                    .to_string(),
-                new_port: inner_reconnect.new_port,
-            })
+            Sv2Message::Reconnect {
+                message: Reconnect {
+                    new_host: String::from_utf8_lossy(inner_reconnect.new_host.inner_as_ref())
+                        .to_string(),
+                    new_port: inner_reconnect.new_port,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::OpenStandardMiningChannel(
             inner_open_standard_mining_channel,
@@ -974,17 +1162,19 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .inner_as_ref()
                 .to_vec();
 
-            Sv2Message::OpenStandardMiningChannel(OpenStandardMiningChannel {
-                request_id,
-                user_identity: String::from_utf8_lossy(
-                    inner_open_standard_mining_channel
-                        .user_identity
-                        .inner_as_ref(),
-                )
-                .to_string(),
-                nominal_hash_rate: inner_open_standard_mining_channel.nominal_hash_rate,
-                max_target,
-            })
+            Sv2Message::OpenStandardMiningChannel {
+                message: OpenStandardMiningChannel {
+                    request_id,
+                    user_identity: String::from_utf8_lossy(
+                        inner_open_standard_mining_channel
+                            .user_identity
+                            .inner_as_ref(),
+                    )
+                    .to_string(),
+                    nominal_hash_rate: inner_open_standard_mining_channel.nominal_hash_rate,
+                    max_target,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::OpenStandardMiningChannelSuccess(
             inner_open_standard_mining_channel_success,
@@ -997,13 +1187,15 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .extranonce_prefix
                 .inner_as_ref()
                 .to_vec();
-            Sv2Message::OpenStandardMiningChannelSuccess(OpenStandardMiningChannelSuccess {
-                request_id: (&inner_open_standard_mining_channel_success.request_id).into(),
-                channel_id: inner_open_standard_mining_channel_success.channel_id,
-                target,
-                extranonce_prefix,
-                group_channel_id: inner_open_standard_mining_channel_success.group_channel_id,
-            })
+            Sv2Message::OpenStandardMiningChannelSuccess {
+                message: OpenStandardMiningChannelSuccess {
+                    request_id: (&inner_open_standard_mining_channel_success.request_id).into(),
+                    channel_id: inner_open_standard_mining_channel_success.channel_id,
+                    target,
+                    extranonce_prefix,
+                    group_channel_id: inner_open_standard_mining_channel_success.group_channel_id,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::OpenExtendedMiningChannel(
             inner_open_extended_mining_channel,
@@ -1012,18 +1204,20 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .max_target
                 .inner_as_ref()
                 .to_vec();
-            Sv2Message::OpenExtendedMiningChannel(OpenExtendedMiningChannel {
-                request_id: inner_open_extended_mining_channel.request_id,
-                user_identity: String::from_utf8_lossy(
-                    inner_open_extended_mining_channel
-                        .user_identity
-                        .inner_as_ref(),
-                )
-                .to_string(),
-                nominal_hash_rate: inner_open_extended_mining_channel.nominal_hash_rate,
-                max_target,
-                min_extranonce_size: inner_open_extended_mining_channel.min_extranonce_size,
-            })
+            Sv2Message::OpenExtendedMiningChannel {
+                message: OpenExtendedMiningChannel {
+                    request_id: inner_open_extended_mining_channel.request_id,
+                    user_identity: String::from_utf8_lossy(
+                        inner_open_extended_mining_channel
+                            .user_identity
+                            .inner_as_ref(),
+                    )
+                    .to_string(),
+                    nominal_hash_rate: inner_open_extended_mining_channel.nominal_hash_rate,
+                    max_target,
+                    min_extranonce_size: inner_open_extended_mining_channel.min_extranonce_size,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::OpenExtendedMiningChannelSuccess(
             inner_open_extended_mining_channel_success,
@@ -1036,111 +1230,133 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .extranonce_prefix
                 .inner_as_ref()
                 .to_vec();
-            Sv2Message::OpenExtendedMiningChannelSuccess(OpenExtendedMiningChannelSuccess {
-                request_id: inner_open_extended_mining_channel_success.request_id,
-                channel_id: inner_open_extended_mining_channel_success.channel_id,
-                group_channel_id: inner_open_extended_mining_channel_success.group_channel_id,
-                target,
-                extranonce_prefix,
-                extranonce_size: inner_open_extended_mining_channel_success.extranonce_size,
-            })
+            Sv2Message::OpenExtendedMiningChannelSuccess {
+                message: OpenExtendedMiningChannelSuccess {
+                    request_id: inner_open_extended_mining_channel_success.request_id,
+                    channel_id: inner_open_extended_mining_channel_success.channel_id,
+                    group_channel_id: inner_open_extended_mining_channel_success.group_channel_id,
+                    target,
+                    extranonce_prefix,
+                    extranonce_size: inner_open_extended_mining_channel_success.extranonce_size,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::OpenMiningChannelError(
             inner_open_mining_channel_error,
-        )) => Sv2Message::OpenMiningChannelError(OpenMiningChannelError {
-            request_id: inner_open_mining_channel_error.request_id,
-            error_code: String::from_utf8_lossy(
-                inner_open_mining_channel_error.error_code.inner_as_ref(),
-            )
-            .to_string(),
-        }),
+        )) => Sv2Message::OpenMiningChannelError {
+            message: OpenMiningChannelError {
+                request_id: inner_open_mining_channel_error.request_id,
+                error_code: String::from_utf8_lossy(
+                    inner_open_mining_channel_error.error_code.inner_as_ref(),
+                )
+                .to_string(),
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::UpdateChannel(inner_update_channel)) => {
             let maximum_target = inner_update_channel.maximum_target.inner_as_ref().to_vec();
-            Sv2Message::UpdateChannel(UpdateChannel {
-                channel_id: inner_update_channel.channel_id,
-                nominal_hash_rate: inner_update_channel.nominal_hash_rate,
-                maximum_target,
-            })
+            Sv2Message::UpdateChannel {
+                message: UpdateChannel {
+                    channel_id: inner_update_channel.channel_id,
+                    nominal_hash_rate: inner_update_channel.nominal_hash_rate,
+                    maximum_target,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::UpdateChannelError(
             inner_update_channel_error,
-        )) => Sv2Message::UpdateChannelError(UpdateChannelError {
-            channel_id: inner_update_channel_error.channel_id,
-            error_code: String::from_utf8_lossy(
-                inner_update_channel_error.error_code.inner_as_ref(),
-            )
-            .to_string(),
-        }),
-        InnerAnyMessage::Mining(InnerMiningMessages::CloseChannel(inner_close_channel)) => {
-            Sv2Message::CloseChannel(CloseChannel {
-                channel_id: inner_close_channel.channel_id,
-                reason_code: String::from_utf8_lossy(
-                    inner_close_channel.reason_code.inner_as_ref(),
+        )) => Sv2Message::UpdateChannelError {
+            message: UpdateChannelError {
+                channel_id: inner_update_channel_error.channel_id,
+                error_code: String::from_utf8_lossy(
+                    inner_update_channel_error.error_code.inner_as_ref(),
                 )
                 .to_string(),
-            })
+            },
+        },
+        InnerAnyMessage::Mining(InnerMiningMessages::CloseChannel(inner_close_channel)) => {
+            Sv2Message::CloseChannel {
+                message: CloseChannel {
+                    channel_id: inner_close_channel.channel_id,
+                    reason_code: String::from_utf8_lossy(
+                        inner_close_channel.reason_code.inner_as_ref(),
+                    )
+                    .to_string(),
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::SetExtranoncePrefix(
             inner_set_extranonce_prefix,
-        )) => Sv2Message::SetExtranoncePrefix(SetExtranoncePrefix {
-            channel_id: inner_set_extranonce_prefix.channel_id,
-            extranonce_prefix: inner_set_extranonce_prefix
-                .extranonce_prefix
-                .inner_as_ref()
-                .to_vec(),
-        }),
+        )) => Sv2Message::SetExtranoncePrefix {
+            message: SetExtranoncePrefix {
+                channel_id: inner_set_extranonce_prefix.channel_id,
+                extranonce_prefix: inner_set_extranonce_prefix
+                    .extranonce_prefix
+                    .inner_as_ref()
+                    .to_vec(),
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::SubmitSharesStandard(
             inner_submit_shares_standard,
-        )) => Sv2Message::SubmitSharesStandard(SubmitSharesStandard {
-            channel_id: inner_submit_shares_standard.channel_id,
-            sequence_number: inner_submit_shares_standard.sequence_number,
-            job_id: inner_submit_shares_standard.job_id,
-            nonce: inner_submit_shares_standard.nonce,
-            ntime: inner_submit_shares_standard.ntime,
-            version: inner_submit_shares_standard.version,
-        }),
+        )) => Sv2Message::SubmitSharesStandard {
+            message: SubmitSharesStandard {
+                channel_id: inner_submit_shares_standard.channel_id,
+                sequence_number: inner_submit_shares_standard.sequence_number,
+                job_id: inner_submit_shares_standard.job_id,
+                nonce: inner_submit_shares_standard.nonce,
+                ntime: inner_submit_shares_standard.ntime,
+                version: inner_submit_shares_standard.version,
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::SubmitSharesExtended(
             inner_submit_shares_extended,
-        )) => Sv2Message::SubmitSharesExtended(SubmitSharesExtended {
-            channel_id: inner_submit_shares_extended.channel_id,
-            sequence_number: inner_submit_shares_extended.sequence_number,
-            job_id: inner_submit_shares_extended.job_id,
-            nonce: inner_submit_shares_extended.nonce,
-            ntime: inner_submit_shares_extended.ntime,
-            version: inner_submit_shares_extended.version,
-            extranonce: inner_submit_shares_extended
-                .extranonce
-                .inner_as_ref()
-                .to_vec(),
-        }),
+        )) => Sv2Message::SubmitSharesExtended {
+            message: SubmitSharesExtended {
+                channel_id: inner_submit_shares_extended.channel_id,
+                sequence_number: inner_submit_shares_extended.sequence_number,
+                job_id: inner_submit_shares_extended.job_id,
+                nonce: inner_submit_shares_extended.nonce,
+                ntime: inner_submit_shares_extended.ntime,
+                version: inner_submit_shares_extended.version,
+                extranonce: inner_submit_shares_extended
+                    .extranonce
+                    .inner_as_ref()
+                    .to_vec(),
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::SubmitSharesSuccess(
             inner_submit_shares_success,
-        )) => Sv2Message::SubmitSharesSuccess(SubmitSharesSuccess {
-            channel_id: inner_submit_shares_success.channel_id,
-            last_sequence_number: inner_submit_shares_success.last_sequence_number,
-            new_submits_accepted_count: inner_submit_shares_success.new_submits_accepted_count,
-            new_shares_sum: inner_submit_shares_success.new_shares_sum,
-        }),
+        )) => Sv2Message::SubmitSharesSuccess {
+            message: SubmitSharesSuccess {
+                channel_id: inner_submit_shares_success.channel_id,
+                last_sequence_number: inner_submit_shares_success.last_sequence_number,
+                new_submits_accepted_count: inner_submit_shares_success.new_submits_accepted_count,
+                new_shares_sum: inner_submit_shares_success.new_shares_sum,
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::SubmitSharesError(
             inner_submit_shares_error,
-        )) => Sv2Message::SubmitSharesError(SubmitSharesError {
-            channel_id: inner_submit_shares_error.channel_id,
-            sequence_number: inner_submit_shares_error.sequence_number,
-            error_code: String::from_utf8_lossy(
-                inner_submit_shares_error.error_code.inner_as_ref(),
-            )
-            .to_string(),
-        }),
+        )) => Sv2Message::SubmitSharesError {
+            message: SubmitSharesError {
+                channel_id: inner_submit_shares_error.channel_id,
+                sequence_number: inner_submit_shares_error.sequence_number,
+                error_code: String::from_utf8_lossy(
+                    inner_submit_shares_error.error_code.inner_as_ref(),
+                )
+                .to_string(),
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::NewMiningJob(inner_new_mining_job)) => {
             let merkle_root = inner_new_mining_job.merkle_root.inner_as_ref().to_vec();
             let min_ntime = inner_new_mining_job.min_ntime.clone().into_inner();
-            Sv2Message::NewMiningJob(NewMiningJob {
-                channel_id: inner_new_mining_job.channel_id,
-                job_id: inner_new_mining_job.job_id,
-                min_ntime,
-                version: inner_new_mining_job.version,
-                merkle_root,
-            })
+            Sv2Message::NewMiningJob {
+                message: NewMiningJob {
+                    channel_id: inner_new_mining_job.channel_id,
+                    job_id: inner_new_mining_job.job_id,
+                    min_ntime,
+                    version: inner_new_mining_job.version,
+                    merkle_root,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::NewExtendedMiningJob(
             inner_new_extended_mining_job,
@@ -1154,31 +1370,35 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .collect();
             let min_ntime = inner_new_extended_mining_job.min_ntime.clone().into_inner();
 
-            Sv2Message::NewExtendedMiningJob(NewExtendedMiningJob {
-                channel_id: inner_new_extended_mining_job.channel_id,
-                job_id: inner_new_extended_mining_job.job_id,
-                min_ntime,
-                version: inner_new_extended_mining_job.version,
-                version_rolling_allowed: inner_new_extended_mining_job.version_rolling_allowed,
-                merkle_path,
-                coinbase_tx_prefix: inner_new_extended_mining_job
-                    .coinbase_tx_prefix
-                    .inner_as_ref()
-                    .to_vec(),
-                coinbase_tx_suffix: inner_new_extended_mining_job
-                    .coinbase_tx_suffix
-                    .inner_as_ref()
-                    .to_vec(),
-            })
+            Sv2Message::NewExtendedMiningJob {
+                message: NewExtendedMiningJob {
+                    channel_id: inner_new_extended_mining_job.channel_id,
+                    job_id: inner_new_extended_mining_job.job_id,
+                    min_ntime,
+                    version: inner_new_extended_mining_job.version,
+                    version_rolling_allowed: inner_new_extended_mining_job.version_rolling_allowed,
+                    merkle_path,
+                    coinbase_tx_prefix: inner_new_extended_mining_job
+                        .coinbase_tx_prefix
+                        .inner_as_ref()
+                        .to_vec(),
+                    coinbase_tx_suffix: inner_new_extended_mining_job
+                        .coinbase_tx_suffix
+                        .inner_as_ref()
+                        .to_vec(),
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::SetNewPrevHash(inner_set_new_prev_hash)) => {
-            Sv2Message::SetNewPrevHashMining(SetNewPrevHashMining {
-                channel_id: inner_set_new_prev_hash.channel_id,
-                job_id: inner_set_new_prev_hash.job_id,
-                prev_hash: inner_set_new_prev_hash.prev_hash.inner_as_ref().to_vec(),
-                min_ntime: inner_set_new_prev_hash.min_ntime,
-                nbits: inner_set_new_prev_hash.nbits,
-            })
+            Sv2Message::SetNewPrevHashMining {
+                message: SetNewPrevHashMining {
+                    channel_id: inner_set_new_prev_hash.channel_id,
+                    job_id: inner_set_new_prev_hash.job_id,
+                    prev_hash: inner_set_new_prev_hash.prev_hash.inner_as_ref().to_vec(),
+                    min_ntime: inner_set_new_prev_hash.min_ntime,
+                    nbits: inner_set_new_prev_hash.nbits,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::SetCustomMiningJob(
             inner_set_custom_mining_job,
@@ -1190,54 +1410,62 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .iter()
                 .map(|path| path.inner_as_ref().to_vec())
                 .collect();
-            Sv2Message::SetCustomMiningJob(SetCustomMiningJob {
-                channel_id: inner_set_custom_mining_job.channel_id,
-                request_id: inner_set_custom_mining_job.request_id,
-                mining_job_token: inner_set_custom_mining_job.token.inner_as_ref().to_vec(),
-                version: inner_set_custom_mining_job.version,
-                prev_hash: inner_set_custom_mining_job
-                    .prev_hash
-                    .inner_as_ref()
-                    .to_vec(),
-                min_ntime: inner_set_custom_mining_job.min_ntime,
-                nbits: inner_set_custom_mining_job.nbits,
-                coinbase_tx_version: inner_set_custom_mining_job.coinbase_tx_version,
-                coinbase_prefix: inner_set_custom_mining_job
-                    .coinbase_prefix
-                    .inner_as_ref()
-                    .to_vec(),
-                coinbase_tx_input_nsequence: inner_set_custom_mining_job
-                    .coinbase_tx_input_n_sequence,
-                coinbase_tx_outputs: inner_set_custom_mining_job
-                    .coinbase_tx_outputs
-                    .inner_as_ref()
-                    .to_vec(),
-                coinbase_tx_locktime: inner_set_custom_mining_job.coinbase_tx_locktime,
-                merkle_path,
-            })
+            Sv2Message::SetCustomMiningJob {
+                message: SetCustomMiningJob {
+                    channel_id: inner_set_custom_mining_job.channel_id,
+                    request_id: inner_set_custom_mining_job.request_id,
+                    mining_job_token: inner_set_custom_mining_job.token.inner_as_ref().to_vec(),
+                    version: inner_set_custom_mining_job.version,
+                    prev_hash: inner_set_custom_mining_job
+                        .prev_hash
+                        .inner_as_ref()
+                        .to_vec(),
+                    min_ntime: inner_set_custom_mining_job.min_ntime,
+                    nbits: inner_set_custom_mining_job.nbits,
+                    coinbase_tx_version: inner_set_custom_mining_job.coinbase_tx_version,
+                    coinbase_prefix: inner_set_custom_mining_job
+                        .coinbase_prefix
+                        .inner_as_ref()
+                        .to_vec(),
+                    coinbase_tx_input_nsequence: inner_set_custom_mining_job
+                        .coinbase_tx_input_n_sequence,
+                    coinbase_tx_outputs: inner_set_custom_mining_job
+                        .coinbase_tx_outputs
+                        .inner_as_ref()
+                        .to_vec(),
+                    coinbase_tx_locktime: inner_set_custom_mining_job.coinbase_tx_locktime,
+                    merkle_path,
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::SetCustomMiningJobSuccess(
             inner_set_custom_mining_job_success,
-        )) => Sv2Message::SetCustomMiningJobSuccess(SetCustomMiningJobSuccess {
-            channel_id: inner_set_custom_mining_job_success.channel_id,
-            request_id: inner_set_custom_mining_job_success.request_id,
-            job_id: inner_set_custom_mining_job_success.job_id,
-        }),
+        )) => Sv2Message::SetCustomMiningJobSuccess {
+            message: SetCustomMiningJobSuccess {
+                channel_id: inner_set_custom_mining_job_success.channel_id,
+                request_id: inner_set_custom_mining_job_success.request_id,
+                job_id: inner_set_custom_mining_job_success.job_id,
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::SetCustomMiningJobError(
             inner_set_custom_mining_job_error,
-        )) => Sv2Message::SetCustomMiningJobError(SetCustomMiningJobError {
-            channel_id: inner_set_custom_mining_job_error.channel_id,
-            request_id: inner_set_custom_mining_job_error.request_id,
-            error_code: String::from_utf8_lossy(
-                inner_set_custom_mining_job_error.error_code.inner_as_ref(),
-            )
-            .to_string(),
-        }),
+        )) => Sv2Message::SetCustomMiningJobError {
+            message: SetCustomMiningJobError {
+                channel_id: inner_set_custom_mining_job_error.channel_id,
+                request_id: inner_set_custom_mining_job_error.request_id,
+                error_code: String::from_utf8_lossy(
+                    inner_set_custom_mining_job_error.error_code.inner_as_ref(),
+                )
+                .to_string(),
+            },
+        },
         InnerAnyMessage::Mining(InnerMiningMessages::SetTarget(inner_set_target)) => {
-            Sv2Message::SetTarget(SetTarget {
-                channel_id: inner_set_target.channel_id,
-                maximum_target: inner_set_target.maximum_target.inner_as_ref().to_vec(),
-            })
+            Sv2Message::SetTarget {
+                message: SetTarget {
+                    channel_id: inner_set_target.channel_id,
+                    maximum_target: inner_set_target.maximum_target.inner_as_ref().to_vec(),
+                },
+            }
         }
         InnerAnyMessage::Mining(InnerMiningMessages::SetGroupChannel(inner_set_group_channel)) => {
             let channel_ids = inner_set_group_channel
@@ -1245,21 +1473,25 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .clone()
                 .into_inner()
                 .to_vec();
-            Sv2Message::SetGroupChannel(SetGroupChannel {
-                group_channel_id: inner_set_group_channel.group_channel_id,
-                channel_ids,
-            })
+            Sv2Message::SetGroupChannel {
+                message: SetGroupChannel {
+                    group_channel_id: inner_set_group_channel.group_channel_id,
+                    channel_ids,
+                },
+            }
         }
         InnerAnyMessage::TemplateDistribution(
             InnerTemplateDistributionMessages::CoinbaseOutputConstraints(
                 inner_coinbase_output_constraints,
             ),
-        ) => Sv2Message::CoinbaseOutputConstraints(CoinbaseOutputConstraints {
-            coinbase_output_max_additional_size: inner_coinbase_output_constraints
-                .coinbase_output_max_additional_size,
-            coinbase_output_max_additional_sigops: inner_coinbase_output_constraints
-                .coinbase_output_max_additional_sigops,
-        }),
+        ) => Sv2Message::CoinbaseOutputConstraints {
+            message: CoinbaseOutputConstraints {
+                coinbase_output_max_additional_size: inner_coinbase_output_constraints
+                    .coinbase_output_max_additional_size,
+                coinbase_output_max_additional_sigops: inner_coinbase_output_constraints
+                    .coinbase_output_max_additional_sigops,
+            },
+        },
         InnerAnyMessage::TemplateDistribution(InnerTemplateDistributionMessages::NewTemplate(
             inner_new_template,
         )) => {
@@ -1270,47 +1502,53 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .iter()
                 .map(|path| path.inner_as_ref().to_vec())
                 .collect();
-            Sv2Message::NewTemplate(NewTemplate {
-                template_id: inner_new_template.template_id,
-                future_template: inner_new_template.future_template,
-                version: inner_new_template.version,
-                coinbase_tx_version: inner_new_template.coinbase_tx_version,
-                coinbase_prefix: inner_new_template.coinbase_prefix.inner_as_ref().to_vec(),
-                coinbase_tx_input_sequence: inner_new_template.coinbase_tx_input_sequence,
-                coinbase_tx_value_remaining: inner_new_template.coinbase_tx_value_remaining,
-                coinbase_tx_outputs_count: inner_new_template.coinbase_tx_outputs_count,
-                coinbase_tx_outputs: inner_new_template
-                    .coinbase_tx_outputs
-                    .inner_as_ref()
-                    .to_vec(),
-                coinbase_tx_locktime: inner_new_template.coinbase_tx_locktime,
-                merkle_path,
-            })
+            Sv2Message::NewTemplate {
+                message: NewTemplate {
+                    template_id: inner_new_template.template_id,
+                    future_template: inner_new_template.future_template,
+                    version: inner_new_template.version,
+                    coinbase_tx_version: inner_new_template.coinbase_tx_version,
+                    coinbase_prefix: inner_new_template.coinbase_prefix.inner_as_ref().to_vec(),
+                    coinbase_tx_input_sequence: inner_new_template.coinbase_tx_input_sequence,
+                    coinbase_tx_value_remaining: inner_new_template.coinbase_tx_value_remaining,
+                    coinbase_tx_outputs_count: inner_new_template.coinbase_tx_outputs_count,
+                    coinbase_tx_outputs: inner_new_template
+                        .coinbase_tx_outputs
+                        .inner_as_ref()
+                        .to_vec(),
+                    coinbase_tx_locktime: inner_new_template.coinbase_tx_locktime,
+                    merkle_path,
+                },
+            }
         }
         InnerAnyMessage::TemplateDistribution(
             InnerTemplateDistributionMessages::SetNewPrevHash(
                 inner_set_new_prev_hash_template_distribution,
             ),
-        ) => Sv2Message::SetNewPrevHashTemplateDistribution(SetNewPrevHashTemplateDistribution {
-            template_id: inner_set_new_prev_hash_template_distribution.template_id,
-            prev_hash: inner_set_new_prev_hash_template_distribution
-                .prev_hash
-                .inner_as_ref()
-                .to_vec(),
-            header_timestamp: inner_set_new_prev_hash_template_distribution.header_timestamp,
-            nbits: inner_set_new_prev_hash_template_distribution.n_bits,
-            target: inner_set_new_prev_hash_template_distribution
-                .target
-                .inner_as_ref()
-                .to_vec(),
-        }),
+        ) => Sv2Message::SetNewPrevHashTemplateDistribution {
+            message: SetNewPrevHashTemplateDistribution {
+                template_id: inner_set_new_prev_hash_template_distribution.template_id,
+                prev_hash: inner_set_new_prev_hash_template_distribution
+                    .prev_hash
+                    .inner_as_ref()
+                    .to_vec(),
+                header_timestamp: inner_set_new_prev_hash_template_distribution.header_timestamp,
+                nbits: inner_set_new_prev_hash_template_distribution.n_bits,
+                target: inner_set_new_prev_hash_template_distribution
+                    .target
+                    .inner_as_ref()
+                    .to_vec(),
+            },
+        },
         InnerAnyMessage::TemplateDistribution(
             InnerTemplateDistributionMessages::RequestTransactionData(
                 inner_request_transaction_data,
             ),
-        ) => Sv2Message::RequestTransactionData(RequestTransactionData {
-            template_id: inner_request_transaction_data.template_id,
-        }),
+        ) => Sv2Message::RequestTransactionData {
+            message: RequestTransactionData {
+                template_id: inner_request_transaction_data.template_id,
+            },
+        },
         InnerAnyMessage::TemplateDistribution(
             InnerTemplateDistributionMessages::RequestTransactionDataSuccess(
                 inner_request_transaction_data_success,
@@ -1322,63 +1560,73 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .iter()
                 .map(|tx| tx.to_vec())
                 .collect();
-            Sv2Message::RequestTransactionDataSuccess(RequestTransactionDataSuccess {
-                template_id: inner_request_transaction_data_success.template_id,
-                excess_data: inner_request_transaction_data_success
-                    .excess_data
-                    .inner_as_ref()
-                    .to_vec(),
-                transaction_list,
-            })
+            Sv2Message::RequestTransactionDataSuccess {
+                message: RequestTransactionDataSuccess {
+                    template_id: inner_request_transaction_data_success.template_id,
+                    excess_data: inner_request_transaction_data_success
+                        .excess_data
+                        .inner_as_ref()
+                        .to_vec(),
+                    transaction_list,
+                },
+            }
         }
         InnerAnyMessage::TemplateDistribution(
             InnerTemplateDistributionMessages::RequestTransactionDataError(
                 inner_request_transaction_data_error,
             ),
-        ) => Sv2Message::RequestTransactionDataError(RequestTransactionDataError {
-            template_id: inner_request_transaction_data_error.template_id,
-            error_code: String::from_utf8_lossy(
-                inner_request_transaction_data_error
-                    .error_code
-                    .inner_as_ref(),
-            )
-            .to_string(),
-        }),
+        ) => Sv2Message::RequestTransactionDataError {
+            message: RequestTransactionDataError {
+                template_id: inner_request_transaction_data_error.template_id,
+                error_code: String::from_utf8_lossy(
+                    inner_request_transaction_data_error
+                        .error_code
+                        .inner_as_ref(),
+                )
+                .to_string(),
+            },
+        },
         InnerAnyMessage::TemplateDistribution(
             InnerTemplateDistributionMessages::SubmitSolution(inner_submit_solution),
-        ) => Sv2Message::SubmitSolution(SubmitSolution {
-            template_id: inner_submit_solution.template_id,
-            version: inner_submit_solution.version,
-            header_timestamp: inner_submit_solution.header_timestamp,
-            header_nonce: inner_submit_solution.header_nonce,
-            coinbase_tx: inner_submit_solution.coinbase_tx.inner_as_ref().to_vec(),
-        }),
+        ) => Sv2Message::SubmitSolution {
+            message: SubmitSolution {
+                template_id: inner_submit_solution.template_id,
+                version: inner_submit_solution.version,
+                header_timestamp: inner_submit_solution.header_timestamp,
+                header_nonce: inner_submit_solution.header_nonce,
+                coinbase_tx: inner_submit_solution.coinbase_tx.inner_as_ref().to_vec(),
+            },
+        },
         InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::AllocateMiningJobToken(
             inner_allocate_mining_job_token,
-        )) => Sv2Message::AllocateMiningJobToken(AllocateMiningJobToken {
-            user_identifier: String::from_utf8_lossy(
-                inner_allocate_mining_job_token
-                    .user_identifier
-                    .inner_as_ref(),
-            )
-            .to_string(),
-            request_id: inner_allocate_mining_job_token.request_id,
-        }),
+        )) => Sv2Message::AllocateMiningJobToken {
+            message: AllocateMiningJobToken {
+                user_identifier: String::from_utf8_lossy(
+                    inner_allocate_mining_job_token
+                        .user_identifier
+                        .inner_as_ref(),
+                )
+                .to_string(),
+                request_id: inner_allocate_mining_job_token.request_id,
+            },
+        },
         InnerAnyMessage::JobDeclaration(
             InnerJobDeclarationMessages::AllocateMiningJobTokenSuccess(
                 inner_allocate_mining_job_token_success,
             ),
-        ) => Sv2Message::AllocateMiningJobTokenSuccess(AllocateMiningJobTokenSuccess {
-            request_id: inner_allocate_mining_job_token_success.request_id,
-            mining_job_token: inner_allocate_mining_job_token_success
-                .mining_job_token
-                .inner_as_ref()
-                .to_vec(),
-            coinbase_tx_outputs: inner_allocate_mining_job_token_success
-                .coinbase_outputs
-                .inner_as_ref()
-                .to_vec(),
-        }),
+        ) => Sv2Message::AllocateMiningJobTokenSuccess {
+            message: AllocateMiningJobTokenSuccess {
+                request_id: inner_allocate_mining_job_token_success.request_id,
+                mining_job_token: inner_allocate_mining_job_token_success
+                    .mining_job_token
+                    .inner_as_ref()
+                    .to_vec(),
+                coinbase_tx_outputs: inner_allocate_mining_job_token_success
+                    .coinbase_outputs
+                    .inner_as_ref()
+                    .to_vec(),
+            },
+        },
         InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::DeclareMiningJob(
             inner_declare_mining_job,
         )) => {
@@ -1388,47 +1636,53 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .iter()
                 .map(|tx_id| tx_id.to_vec())
                 .collect();
-            Sv2Message::DeclareMiningJob(DeclareMiningJob {
-                request_id: inner_declare_mining_job.request_id,
-                mining_job_token: inner_declare_mining_job
-                    .mining_job_token
-                    .inner_as_ref()
-                    .to_vec(),
-                version: inner_declare_mining_job.version,
-                coinbase_tx_prefix: inner_declare_mining_job
-                    .coinbase_tx_prefix
-                    .inner_as_ref()
-                    .to_vec(),
-                coinbase_tx_suffix: inner_declare_mining_job
-                    .coinbase_tx_suffix
-                    .inner_as_ref()
-                    .to_vec(),
-                wtxid_list: tx_ids_list,
-                excess_data: inner_declare_mining_job.excess_data.inner_as_ref().to_vec(),
-            })
+            Sv2Message::DeclareMiningJob {
+                message: DeclareMiningJob {
+                    request_id: inner_declare_mining_job.request_id,
+                    mining_job_token: inner_declare_mining_job
+                        .mining_job_token
+                        .inner_as_ref()
+                        .to_vec(),
+                    version: inner_declare_mining_job.version,
+                    coinbase_tx_prefix: inner_declare_mining_job
+                        .coinbase_tx_prefix
+                        .inner_as_ref()
+                        .to_vec(),
+                    coinbase_tx_suffix: inner_declare_mining_job
+                        .coinbase_tx_suffix
+                        .inner_as_ref()
+                        .to_vec(),
+                    wtxid_list: tx_ids_list,
+                    excess_data: inner_declare_mining_job.excess_data.inner_as_ref().to_vec(),
+                },
+            }
         }
         InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::DeclareMiningJobSuccess(
             inner_declare_mining_job_success,
-        )) => Sv2Message::DeclareMiningJobSuccess(DeclareMiningJobSuccess {
-            request_id: inner_declare_mining_job_success.request_id,
-            new_mining_job_token: inner_declare_mining_job_success
-                .new_mining_job_token
-                .inner_as_ref()
-                .to_vec(),
-        }),
+        )) => Sv2Message::DeclareMiningJobSuccess {
+            message: DeclareMiningJobSuccess {
+                request_id: inner_declare_mining_job_success.request_id,
+                new_mining_job_token: inner_declare_mining_job_success
+                    .new_mining_job_token
+                    .inner_as_ref()
+                    .to_vec(),
+            },
+        },
         InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::DeclareMiningJobError(
             inner_declare_mining_job_error,
-        )) => Sv2Message::DeclareMiningJobError(DeclareMiningJobError {
-            request_id: inner_declare_mining_job_error.request_id,
-            error_code: String::from_utf8_lossy(
-                inner_declare_mining_job_error.error_code.inner_as_ref(),
-            )
-            .to_string(),
-            error_details: inner_declare_mining_job_error
-                .error_details
-                .inner_as_ref()
-                .to_vec(),
-        }),
+        )) => Sv2Message::DeclareMiningJobError {
+            message: DeclareMiningJobError {
+                request_id: inner_declare_mining_job_error.request_id,
+                error_code: String::from_utf8_lossy(
+                    inner_declare_mining_job_error.error_code.inner_as_ref(),
+                )
+                .to_string(),
+                error_details: inner_declare_mining_job_error
+                    .error_details
+                    .inner_as_ref()
+                    .to_vec(),
+            },
+        },
         InnerAnyMessage::JobDeclaration(
             InnerJobDeclarationMessages::ProvideMissingTransactions(
                 inner_provide_missing_transactions,
@@ -1438,10 +1692,12 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .unknown_tx_position_list
                 .clone()
                 .into_inner();
-            Sv2Message::ProvideMissingTransactions(ProvideMissingTransactions {
-                request_id: inner_provide_missing_transactions.request_id,
-                unknown_tx_position_list,
-            })
+            Sv2Message::ProvideMissingTransactions {
+                message: ProvideMissingTransactions {
+                    request_id: inner_provide_missing_transactions.request_id,
+                    unknown_tx_position_list,
+                },
+            }
         }
         InnerAnyMessage::JobDeclaration(
             InnerJobDeclarationMessages::ProvideMissingTransactionsSuccess(
@@ -1454,48 +1710,58 @@ pub fn inner_to_sv2_message(inner: &InnerAnyMessage<'static>) -> Sv2Message {
                 .iter()
                 .map(|tx| tx.to_vec())
                 .collect();
-            Sv2Message::ProvideMissingTransactionsSuccess(ProvideMissingTransactionsSuccess {
-                request_id: inner_provide_missing_transactions_success.request_id,
-                transaction_list,
-            })
+            Sv2Message::ProvideMissingTransactionsSuccess {
+                message: ProvideMissingTransactionsSuccess {
+                    request_id: inner_provide_missing_transactions_success.request_id,
+                    transaction_list,
+                },
+            }
         }
         InnerAnyMessage::JobDeclaration(InnerJobDeclarationMessages::PushSolution(
             inner_push_solution,
-        )) => Sv2Message::PushSolution(PushSolution {
-            extranonce: inner_push_solution.extranonce.inner_as_ref().to_vec(),
-            prev_hash: inner_push_solution.prev_hash.inner_as_ref().to_vec(),
-            nonce: inner_push_solution.nonce,
-            ntime: inner_push_solution.ntime,
-            nbits: inner_push_solution.nbits,
-            version: inner_push_solution.version,
-        }),
+        )) => Sv2Message::PushSolution {
+            message: PushSolution {
+                extranonce: inner_push_solution.extranonce.inner_as_ref().to_vec(),
+                prev_hash: inner_push_solution.prev_hash.inner_as_ref().to_vec(),
+                nonce: inner_push_solution.nonce,
+                ntime: inner_push_solution.ntime,
+                nbits: inner_push_solution.nbits,
+                version: inner_push_solution.version,
+            },
+        },
         InnerAnyMessage::Extensions(InnerExtensions::ExtensionsNegotiation(
             InnerExtensionsNegotiation::RequestExtensions(request_extension),
-        )) => Sv2Message::RequestExtensions(RequestExtensions {
-            request_id: request_extension.request_id,
-            requested_extensions: request_extension.requested_extensions.clone().into_inner(),
-        }),
+        )) => Sv2Message::RequestExtensions {
+            message: RequestExtensions {
+                request_id: request_extension.request_id,
+                requested_extensions: request_extension.requested_extensions.clone().into_inner(),
+            },
+        },
         InnerAnyMessage::Extensions(InnerExtensions::ExtensionsNegotiation(
             InnerExtensionsNegotiation::RequestExtensionsSuccess(request_extension_success),
-        )) => Sv2Message::RequestExtensionsSuccess(RequestExtensionsSuccess {
-            request_id: request_extension_success.request_id,
-            supported_extensions: request_extension_success
-                .supported_extensions
-                .clone()
-                .into_inner(),
-        }),
+        )) => Sv2Message::RequestExtensionsSuccess {
+            message: RequestExtensionsSuccess {
+                request_id: request_extension_success.request_id,
+                supported_extensions: request_extension_success
+                    .supported_extensions
+                    .clone()
+                    .into_inner(),
+            },
+        },
         InnerAnyMessage::Extensions(InnerExtensions::ExtensionsNegotiation(
             InnerExtensionsNegotiation::RequestExtensionsError(request_extension_error),
-        )) => Sv2Message::RequestExtensionsError(RequestExtensionsError {
-            request_id: request_extension_error.request_id,
-            unsupported_extensions: request_extension_error
-                .unsupported_extensions
-                .clone()
-                .into_inner(),
-            required_extensions: request_extension_error
-                .required_extensions
-                .clone()
-                .into_inner(),
-        }),
+        )) => Sv2Message::RequestExtensionsError {
+            message: RequestExtensionsError {
+                request_id: request_extension_error.request_id,
+                unsupported_extensions: request_extension_error
+                    .unsupported_extensions
+                    .clone()
+                    .into_inner(),
+                required_extensions: request_extension_error
+                    .required_extensions
+                    .clone()
+                    .into_inner(),
+            },
+        },
     }
 }

@@ -112,8 +112,10 @@ impl Sv2StandardChannelServer {
             .map(|output| output.to_txout())
             .collect();
 
-        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(new_template))
-            .map_err(Sv2ServerStandardChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate {
+            message: new_template,
+        })
+        .map_err(|error| Sv2ServerStandardChannelError::FailedToConvertMessage { error })?;
 
         let inner_template = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -154,10 +156,10 @@ impl Sv2StandardChannelServer {
             .inner
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
-        let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution(
-            set_new_prev_hash,
-        ))
-        .map_err(Sv2ServerStandardChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::SetNewPrevHashTemplateDistribution {
+            message: set_new_prev_hash,
+        })
+        .map_err(|error| Sv2ServerStandardChannelError::FailedToConvertMessage { error })?;
 
         let inner_set_new_prev_hash = match any_message {
             parsers_sv2::AnyMessage::TemplateDistribution(
@@ -181,8 +183,8 @@ impl Sv2StandardChannelServer {
             .lock()
             .map_err(|_| Sv2ServerStandardChannelError::LockError)?;
 
-        let any_message = sv2_message_to_inner(Sv2Message::SubmitSharesStandard(share))
-            .map_err(Sv2ServerStandardChannelError::FailedToConvertMessage)?;
+        let any_message = sv2_message_to_inner(Sv2Message::SubmitSharesStandard { message: share })
+            .map_err(|error| Sv2ServerStandardChannelError::FailedToConvertMessage { error })?;
 
         let inner_share = match any_message {
             parsers_sv2::AnyMessage::Mining(parsers_sv2::Mining::SubmitSharesStandard(share)) => {
@@ -194,18 +196,26 @@ impl Sv2StandardChannelServer {
         let result = channel.validate_share(inner_share);
 
         match result {
-            Ok(InnerShareValidationResult::Valid(hash)) => {
-                Ok(ShareValidationResult::Valid(hash[..].to_vec()))
+            Ok(InnerShareValidationResult::Valid(hash)) => Ok(ShareValidationResult::Valid {
+                share_hash: hash[..].to_vec(),
+            }),
+            Ok(InnerShareValidationResult::BlockFound(share_hash, template_id, coinbase)) => {
+                Ok(ShareValidationResult::BlockFound {
+                    share_hash: share_hash[..].to_vec(),
+                    template_id,
+                    coinbase,
+                })
             }
-            Ok(InnerShareValidationResult::BlockFound(share_hash, template_id, coinbase)) => Ok(
-                ShareValidationResult::BlockFound(share_hash[..].to_vec(), template_id, coinbase),
-            ),
-            Err(InnerShareValidationError::Invalid) => Err(
-                Sv2ServerStandardChannelError::ShareValidationError(ShareValidationError::Invalid),
-            ),
-            Err(InnerShareValidationError::Stale) => Err(
-                Sv2ServerStandardChannelError::ShareValidationError(ShareValidationError::Stale),
-            ),
+            Err(InnerShareValidationError::Invalid) => {
+                Err(Sv2ServerStandardChannelError::ShareValidationError(
+                    ShareValidationError::Invalid,
+                ))
+            }
+            Err(InnerShareValidationError::Stale) => {
+                Err(Sv2ServerStandardChannelError::ShareValidationError(
+                    ShareValidationError::Stale,
+                ))
+            }
             Err(InnerShareValidationError::InvalidJobId) => {
                 Err(Sv2ServerStandardChannelError::ShareValidationError(
                     ShareValidationError::InvalidJobId,

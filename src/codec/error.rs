@@ -15,7 +15,7 @@ pub enum Sv2CodecError {
     FailedToConvertMessageToFrame,
     FailedToDecodeFrame,
     FailedToGetFrameHeader,
-    Sv2MessagesError(Sv2MessageError),
+    Sv2MessagesError { error: Sv2MessageError },
     MissingBytes,
     InvalidDataSize { expected: u32, actual: u32 },
 }
