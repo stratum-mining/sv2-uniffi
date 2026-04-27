@@ -69,7 +69,7 @@ impl Sv2GroupChannelServer {
 
     pub fn on_new_template(
         &self,
-        template: NewTemplate,
+        new_template: NewTemplate,
         coinbase_reward_outputs: Vec<TxOutput>,
     ) -> Result<(), Sv2ServerGroupChannelError> {
         let mut channel = self
@@ -81,7 +81,7 @@ impl Sv2GroupChannelServer {
             .map(|output| output.to_txout())
             .collect();
 
-        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(template))
+        let any_message = sv2_message_to_inner(Sv2Message::NewTemplate(new_template))
             .map_err(Sv2ServerGroupChannelError::FailedToConvertMessage)?;
 
         let inner_template = match any_message {
