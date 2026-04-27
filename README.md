@@ -12,7 +12,8 @@ Each supported language has its own directory.
 
 ## Supported target languages
 
-For now, only Python is supported.
+- Python
+- C++
 
 ## Minimum Supported Rust Version (MSRV)
 
