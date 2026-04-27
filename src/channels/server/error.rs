@@ -23,7 +23,7 @@ pub enum Sv2ServerExtendedChannelError {
     MessageIsNotSubmitSharesExtended,
     MessageIsNotNewExtendedMiningJob,
     MessageIsNotGroupChannelJob,
-    ShareValidationError(ShareValidationError),
+    ShareValidationFailed { error: ShareValidationError },
     FailedToGetActiveJob,
 }
 
@@ -48,7 +48,7 @@ pub enum Sv2ServerStandardChannelError {
     FailedToProcessNewPrevHash,
     FailedToConvertMessage { error: Sv2MessageError },
     FailedToProcessNewTemplate,
-    ShareValidationError(ShareValidationError),
+    ShareValidationFailed { error: ShareValidationError },
     FailedToGetActiveJob,
     FailedToProcessGroupChannelJob,
 }

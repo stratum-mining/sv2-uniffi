@@ -207,49 +207,49 @@ impl Sv2StandardChannelServer {
                 })
             }
             Err(InnerShareValidationError::Invalid) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::Invalid,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::Invalid,
+                })
             }
             Err(InnerShareValidationError::Stale) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::Stale,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::Stale,
+                })
             }
             Err(InnerShareValidationError::InvalidJobId) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::InvalidJobId,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::InvalidJobId,
+                })
             }
             Err(InnerShareValidationError::DoesNotMeetTarget) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::DoesNotMeetTarget,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::DoesNotMeetTarget,
+                })
             }
             Err(InnerShareValidationError::VersionRollingNotAllowed) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::VersionRollingNotAllowed,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::VersionRollingNotAllowed,
+                })
             }
             Err(InnerShareValidationError::DuplicateShare) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::DuplicateShare,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::DuplicateShare,
+                })
             }
             Err(InnerShareValidationError::InvalidCoinbase) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::InvalidCoinbase,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::InvalidCoinbase,
+                })
             }
             Err(InnerShareValidationError::NoChainTip) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::NoChainTip,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::NoChainTip,
+                })
             }
             Err(InnerShareValidationError::BadExtranonceSize) => {
-                Err(Sv2ServerStandardChannelError::ShareValidationError(
-                    ShareValidationError::BadExtranonceSize,
-                ))
+                Err(Sv2ServerStandardChannelError::ShareValidationFailed {
+                    error: ShareValidationError::BadExtranonceSize,
+                })
             }
         }
     }
