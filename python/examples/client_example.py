@@ -188,7 +188,7 @@ def send_and_receive_messages(client_socket: socket.socket, initiator: Sv2CodecS
                             print("\n🎉 Received SetupConnectionSuccess!")
                             
                             # Extract the response data
-                            success_response = decoded_response[0]  # type: ignore
+                            success_response = decoded_response.message
                             
                             print("--- SetupConnectionSuccess Details ---")
                             print(f"Used Version: {success_response.used_version}")
