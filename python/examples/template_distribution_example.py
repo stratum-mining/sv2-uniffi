@@ -417,7 +417,7 @@ def listen_for_messages(client_socket: socket.socket, initiator: Sv2CodecState, 
                         if decoded_message.is_NEW_TEMPLATE():
                             print("📄 NEW_TEMPLATE message received")
                             # Access message data properly from the enum variant
-                            template_data = decoded_message[0]  # type: ignore
+                            template_data = decoded_message.message
                             print(f"  - Template ID: {template_data.template_id}")
                             print(f"  - Future template: {template_data.future_template}")
                             print(f"  - Version: {template_data.version}")
@@ -429,7 +429,7 @@ def listen_for_messages(client_socket: socket.socket, initiator: Sv2CodecState, 
                         elif decoded_message.is_SET_NEW_PREV_HASH_TEMPLATE_DISTRIBUTION():
                             print("🔗 SET_NEW_PREV_HASH_TEMPLATE_DISTRIBUTION message received")
                             # Access message data properly from the enum variant
-                            prev_hash_data = decoded_message[0]  # type: ignore
+                            prev_hash_data = decoded_message.message
                             print(f"  - Template ID: {prev_hash_data.template_id}")
                             print(f"  - PrevHash: {prev_hash_data.prev_hash[::-1].hex()}")
                             print(f"  - Header timestamp: {prev_hash_data.header_timestamp}")

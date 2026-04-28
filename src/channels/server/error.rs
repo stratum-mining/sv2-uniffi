@@ -7,10 +7,10 @@ pub enum Sv2ServerExtendedChannelError {
     LockError,
     BadMaxTarget,
     InvalidNominalHashrate,
-    RequestedMaxTargetOutOfRange,
     RequestedMinExtranonceSizeTooLarge,
     FailedToConvertMessage(Sv2MessageError),
     FailedToCreateExtendedChannel,
+    FailedToConsumeExtranoncePrefix,
     FailedToUpdateChannel,
     FailedToProcessNewTemplate,
     FailedToProcessNewPrevHash,
@@ -36,6 +36,7 @@ impl Display for Sv2ServerExtendedChannelError {
 #[derive(Debug, uniffi::Error)]
 pub enum Sv2ServerStandardChannelError {
     FailedToCreateStandardChannel,
+    FailedToConsumeExtranoncePrefix,
     BadMaxTarget,
     LockError,
     FailedToUpdateChannel,

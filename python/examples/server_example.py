@@ -180,7 +180,7 @@ def handle_decoded_message(decoded_message, encoder, responder, client_socket, m
         print("\n🎉 Received SetupConnection Message!")
         
         # Extract the SetupConnection data
-        setup_connection = decoded_message[0]  # type: ignore
+        setup_connection = decoded_message.message
             
         print("--- SetupConnection Details ---")
         print(f"Protocol: {setup_connection.protocol}")

@@ -12,13 +12,22 @@ import traceback
 def test_extended_channel_server():
     """Test extended channel server functionality."""
     try:
-        from sv2 import Sv2ExtendedChannelServer, NewTemplate, TxOutput, SetNewPrevHashTemplateDistribution, SetCustomMiningJob
+        from sv2 import Sv2ExtendedChannelServer, Sv2ExtranonceAllocator, NewTemplate, TxOutput, SetNewPrevHashTemplateDistribution, SetCustomMiningJob
+
+        extranonce_allocator = Sv2ExtranonceAllocator(
+            local_prefix_bytes=b"\xFF",
+            total_extranonce_len=22,
+            max_channels=256,
+        )
+        extranonce_prefix = extranonce_allocator.allocate_extended(
+            min_rollable_size=CLIENT_SEARCH_SPACE_BYTES
+        )
 
         # Create a new extended channel server using constructor directly
         extended_channel = Sv2ExtendedChannelServer(
             channel_id=1,
             user_identity="test",
-            extranonce_prefix=b"\xFF" * 16,
+            extranonce_prefix=extranonce_prefix,
             max_target=b"\xFF" * 32,
             nominal_hashrate=10_000.0,
             version_rolling_allowed=True,

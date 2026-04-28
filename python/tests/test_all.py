@@ -11,6 +11,8 @@ from test_message_creation import test_message_creation
 from test_encoding_decoding import test_encoding_decoding
 from test_error_handling import test_error_handling
 from test_extended_channel_server import test_extended_channel_server
+from test_examples import test_examples
+from test_extranonce_allocator import test_extranonce_allocator
 from test_share_accounting import test_share_accounting
 
 def run_all_tests():
@@ -46,9 +48,17 @@ def run_all_tests():
     print("\n6. Extended Channel Server Test:")
     results.append(test_extended_channel_server())
 
-    # Test 7: Share accounting
-    print("\n7. Share Accounting Test:")
+    # Test 7: Extranonce allocator
+    print("\n7. Extranonce Allocator Test:")
+    results.append(test_extranonce_allocator())
+
+    # Test 8: Share accounting
+    print("\n8. Share Accounting Test:")
     results.append(test_share_accounting())
+
+    # Test 9: Self-contained Python examples
+    print("\n9. Example Smoke Tests:")
+    results.append(test_examples())
     
     # Summary
     print("\n" + "=" * 40)

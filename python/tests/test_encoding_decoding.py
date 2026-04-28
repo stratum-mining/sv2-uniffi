@@ -95,7 +95,9 @@ def test_encoding_decoding(initiator, responder, message):
 
             # Verify the decoded message matches what we encoded
             if decoded_message.is_SETUP_CONNECTION():
-                setup_connection = decoded_message[0]  # type: ignore
+                setup_connection = getattr(decoded_message, "message", None)
+                if setup_connection is None:
+                    setup_connection = decoded_message[0]  # type: ignore
                 if setup_connection.endpoint_host == "test.example.com":
                     print("✓ Encoding/decoding test passed")
                     return True

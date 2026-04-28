@@ -3,17 +3,19 @@ name = "sv2-uniffi"
 version = "0.1.0"
 edition = "2018"
 
+# todo: use crates.io for SRI crates
+# https://github.com/stratum-mining/sv2-uniffi/issues/12
 [dependencies]
-codec_sv2 = { version = "^5.0.0", features = ["noise_sv2", "with_buffer_pool"] }
-channels_sv2 = "^4.0.0"
-parsers_sv2 = "^0.2.2"
-common_messages_sv2 = "^7.0.0"
-mining_sv2 = "^8.0.0"
-job_declaration_sv2 = "^7.0.0"
-template_distribution_sv2 = "^5.0.0"
-noise_sv2 = "1.4.2"
-binary_sv2 = "5.0.1"
-extensions_sv2 = "0.1.0"
+codec_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3", features = ["noise_sv2", "with_buffer_pool"] }
+channels_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+parsers_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+common_messages_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+mining_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+job_declaration_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+template_distribution_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+noise_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+binary_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
+extensions_sv2 = { git = "https://github.com/stratum-mining/stratum", rev = "2bd3073c7241a6a4355de30a120bea1b2bc69fa3" }
 
 bitcoin = { version = "0.32.5" }
 
