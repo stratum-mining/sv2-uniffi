@@ -3,8 +3,14 @@ use std::fmt::Display;
 
 #[derive(uniffi::Enum)]
 pub enum ShareValidationResult {
-    Valid(Vec<u8>),
-    BlockFound(Vec<u8>, Option<u64>, Vec<u8>),
+    Valid {
+        share_hash: Vec<u8>,
+    },
+    BlockFound {
+        share_hash: Vec<u8>,
+        template_id: Option<u64>,
+        coinbase: Vec<u8>,
+    },
 }
 
 #[derive(uniffi::Enum, Debug)]

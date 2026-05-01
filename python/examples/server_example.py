@@ -323,4 +323,4 @@ def main():
         print(f"✗ Server failed to start: {e}")
 
 if __name__ == "__main__":
-    main() 
+    main()

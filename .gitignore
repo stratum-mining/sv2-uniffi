@@ -1,5 +1,9 @@
 target
 python/sv2.py
+cpp/sv2.cpp
+cpp/sv2.hpp
+cpp/sv2_scaffolding.hpp
+cpp/build
 __pycache__
 *.so
 *.dylib

@@ -42,7 +42,7 @@ impl Sv2StandardJob {
             job_message.clone(),
         )));
         let job_message = match job_message {
-            Sv2Message::NewMiningJob(job) => job,
+            Sv2Message::NewMiningJob { message: job } => job,
             _ => return Err(Sv2StandardJobError::MessageIsNotNewMiningJob),
         };
         Ok(job_message)
@@ -58,7 +58,7 @@ impl Sv2StandardJob {
             TemplateDistribution::NewTemplate(template.clone()),
         ));
         let template = match template {
-            Sv2Message::NewTemplate(template) => template,
+            Sv2Message::NewTemplate { message: template } => template,
             _ => return Err(Sv2StandardJobError::MessageIsNotNewTemplate),
         };
         Ok(template)

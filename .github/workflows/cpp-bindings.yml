@@ -1,0 +1,41 @@
+name: C++ bindings
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UNIFFI_BINDGEN_CPP_VERSION: v0.8.1+v0.29.4
+
+jobs:
+  cpp-bindings:
+    name: C++ bindings
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.85
+
+      - name: Install C++ bindings generator
+        run: |
+          cargo install uniffi-bindgen-cpp --git https://github.com/NordSecurity/uniffi-bindgen-cpp --tag "$UNIFFI_BINDGEN_CPP_VERSION"
+
+      - name: Generate C++ bindings
+        working-directory: cpp
+        run: bash scripts/generate-linux.sh
+
+      - name: Build and run C++ tests
+        working-directory: cpp
+        run: |
+          cmake -S . -B build -DSV2CPP_BUILD_TESTS=ON -DSV2CPP_BUILD_EXAMPLES=ON
+          cmake --build build
+          ctest --test-dir build --output-on-failure
