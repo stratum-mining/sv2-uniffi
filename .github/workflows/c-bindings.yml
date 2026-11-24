@@ -1,0 +1,93 @@
+name: C bindings
+
+# c/ is a crate of its own with its own Cargo.lock, so it only needs
+# checking when it changes.
+on:
+  pull_request:
+    paths:
+      - "c/**"
+      - ".github/workflows/c-bindings.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "c/**"
+      - ".github/workflows/c-bindings.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # c/build.sh fails when the committed header differs from what this
+  # version generates
+  CBINDGEN_VERSION: 0.29.4
+
+defaults:
+  run:
+    working-directory: c
+
+jobs:
+  c-bindings:
+    name: C bindings
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.85
+        with:
+          components: rustfmt, clippy
+
+      - name: Install cbindgen
+        run: cargo install cbindgen --version "$CBINDGEN_VERSION" --locked
+
+      - name: Check formatting
+        run: |
+          cargo fmt --check
+          cargo fmt --check --manifest-path fuzz/Cargo.toml
+
+      - name: Run clippy
+        run: cargo clippy --release --all-targets --locked -- -D warnings
+
+      - name: Build, run the tests, then the C test under ASan and UBSan
+        run: SANITIZE=1 ./test.sh
+
+  c-bindings-msrv:
+    name: C bindings (Rust 1.75)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # the toolchain of stratum-mining/stratum, and rust-version in c/Cargo.toml
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.75
+
+      - name: Run tests
+        run: cargo test --release --locked
+
+  c-bindings-fuzz:
+    name: C bindings (fuzz)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      # a minute of each target; longer runs are local (c/README.md)
+      - name: Fuzz
+        run: |
+          for t in message_decode noise_transport channel_share; do
+            cargo fuzz run "$t" -- -max_total_time=60 -max_len=8192
+          done
