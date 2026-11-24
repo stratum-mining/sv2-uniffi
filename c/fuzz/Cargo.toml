@@ -1,0 +1,43 @@
+[package]
+name = "sv2_sri_fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+license = "MIT OR Apache-2.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Run from the repository root with a nightly toolchain:
+#   cargo +nightly fuzz run message_decode -- -max_total_time=60
+# Each target calls the C API the way a C caller does; a panic anywhere
+# under it is a crash (cargo fuzz builds with panic=abort, so the API's
+# own catch_unwind cannot hide it).
+[dependencies]
+libfuzzer-sys = "0.4"
+sv2_sri = { path = ".." }
+
+[[bin]]
+name = "message_decode"
+path = "fuzz_targets/message_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "noise_transport"
+path = "fuzz_targets/noise_transport.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "channel_share"
+path = "fuzz_targets/channel_share.rs"
+test = false
+doc = false
+bench = false
+
+# not part of any parent workspace
+[workspace]
+members = ["."]

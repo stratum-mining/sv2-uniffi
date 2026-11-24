@@ -1,0 +1,55 @@
+[package]
+name = "sv2_sri"
+version = "0.2.0"
+edition = "2021"
+publish = false
+license = "MIT OR Apache-2.0"
+# the toolchain of stratum-mining/stratum (its rust-toolchain.toml).  The
+# committed Cargo.lock is resolved for it: lock format 3, and no
+# dependency that is built asks for a newer compiler.  CI tests it.
+rust-version = "1.75"
+description = "C API over the Stratum V2 Reference Implementation crates"
+repository = "https://github.com/stratum-mining/sv2-uniffi"
+
+[lib]
+name = "sv2_sri"
+# staticlib is what C links; rlib only serves `cargo test`
+crate-type = ["staticlib", "rlib"]
+
+# Stratum V2 Reference Implementation crates, as released on crates.io with
+# stratum-mining/stratum v1.13.0 (2026-11-04).  That release has everything
+# the channels need: a prebuilt job's own ntime_start (stratum#2452), a
+# job's target (#2455) and no target above max_target (#2456).  The message
+# structs change between major versions, so bump these and src/messages.rs
+# together.
+[dependencies]
+# the encrypted transport: handshake states, frame encryption and the
+# receive side reassembly (Cargo.lock has 8.1.0, released the day after
+# v1.13.0: stratum#2483, the same encode_transport() without a staging
+# buffer)
+codec_sv2 = { version = "8.0.0", features = ["noise_sv2"] }
+# SRI's own message dispatcher: frame header to message, with the TLV rules
+parsers_sv2 = "0.7.0"
+noise_sv2 = "2.1.0"
+framing_sv2 = "9.0.0"
+binary_sv2 = "8.0.0"
+common_messages_sv2 = "10.0.0"
+mining_sv2 = "13.0.0"
+# the server channels: extranonce prefixes, job ids, share validation
+channels_sv2 = "9.0.0"
+# channels_sv2's own, for its Target and hash types
+bitcoin = { version = "0.32.5", default-features = false, features = ["std"] }
+# SRI's own key encoding (base58check with a version prefix), the format SRI
+# pools print and the Bitaxe UI accepts
+key-utils = "1.2.0"
+# the versions noise_sv2 itself uses, so nothing is compiled twice
+secp256k1 = { version = "0.28.2", default-features = false, features = ["std", "rand-std", "hashes"] }
+rand = { version = "0.8.5", default-features = false, features = ["std", "std_rng"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+# panic stays "unwind": every exported function catches a panic and reports
+# it as SV2_SRI_ERR_INTERNAL (guard() in src/ffi.rs), so a server drops the
+# one connection that hit it.  "abort" would stop the whole process.

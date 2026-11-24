@@ -14,6 +14,7 @@ Each supported language has its own directory.
 
 - Python
 - C++
+- C, in [`c/`](c/): a crate of its own with a hand-written C API and a cbindgen header, since UniFFI has no C target
 
 ## Minimum Supported Rust Version (MSRV)
 

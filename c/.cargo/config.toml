@@ -1,0 +1,4 @@
+# Keep `cargo update` and `cargo generate-lockfile` on versions that build
+# with the rust-version of Cargo.toml (Rust 1.75), whatever cargo runs them.
+[resolver]
+incompatible-rust-versions = "fallback"
